@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ===================================================================
+// ENUMS - For defining roles and types
+// ===================================================================
+
+enum Role {
+  ADMIN
+  NGO
+  PANCHAYAT
+}
+
+// ===================================================================
+// CORE USER MODEL
+// ===================================================================
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  fullName  String
+  password  String // This will store the hashed password
+  role      Role
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships to profile models (One-to-One)
+  adminProfile    AdminProfile?
+  ngoProfile      NgoProfile?
+  panchayatProfile PanchayatProfile?
+  commonProfile   CommonProfile? // For NGO/Panchayat common details
+}
+
+
+// ===================================================================
+// ROLE-SPECIFIC PROFILE MODELS
+// ===================================================================
+
+// Step 3 for ADMINS
+model AdminProfile {
+  id                String @id @default(auto()) @map("_id") @db.ObjectId
+  nccrGovtId        String @unique
+  idProofUrl        String // URL to the uploaded ID proof file
+  metamaskAddress   String @unique
+
+  // Relation to the main User model
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.ObjectId
+}
+
+// Step 3 for NGOS
+model NgoProfile {
+  id                        String @id @default(auto()) @map("_id") @db.ObjectId
+  legalName                 String
+  registrationNumber        String @unique
+  registrationType          String
+  registrationCertificateUrl String
+  panNumber                 String @unique
+  panUrl                    String
+  bankAccountProofUrl       String
+  authorizedSignatoryName   String
+  authorizedSignatoryRole   String
+  authorizedSignatoryIdProofUrl String
+  yearOfEstablishment       Int
+
+  // Relation to the main User model
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.ObjectId
+}
+
+// Step 3 for PANCHAYATS
+model PanchayatProfile {
+  id                         String @id @default(auto()) @map("_id") @db.ObjectId
+  panchayatCode              String @unique
+  panchayatName              String
+  sarpanchName               String // Sarpanch / Authorized Representative Name
+  authorizedRepresentativeIdProofUrl String
+  officialLetterUrl          String
+  panchayatSealUrl           String
+
+  // Relation to the main User model
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.ObjectId
+}
+
+
+// ===================================================================
+// COMMON PROFILE MODEL
+// ===================================================================
+
+// Step 4 for NGO / PANCHAYAT
+model CommonProfile {
+  id                  String @id @default(auto()) @map("_id") @db.ObjectId
+  displayName         String
+  officialAddress     String
+  jurisdictionState   String
+  district            String
+  primaryContactName  String
+  primaryContactRole  String
+  primaryContactPhone String
+  primaryContactEmail String
+  // For Geo Coordinates, storing as a simple string or two Floats is an option.
+  // Using two floats is generally better for querying.
+  latitude            Float
+  longitude           Float
+  blockchainWallet    String @unique
+  consent             Boolean @default(false)
+
+  // Relation to the main User model
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.ObjectId
+}
