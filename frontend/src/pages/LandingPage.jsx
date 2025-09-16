@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Waves, CheckCircle, Clock, AlertCircle, ArrowDown, Leaf, Shield, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -54,15 +55,15 @@ const ProjectCard = ({ project, index }) => {
   };
 
   return (
-    <div className="project-card group bg-slate-900/40 border border-transparent hover:bg-white hover:border-blue-400 transition-all duration-300 cursor-pointer active:scale-[0.98]">
+    <div className="project-card group bg-slate-900/40 border border-transparent hover:bg-slate-800 hover:border-blue-400 transition-all duration-300 cursor-pointer active:scale-[0.98]">
       <div className="p-8">
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-white group-hover:text-slate-900 mb-2 transition-colors">
+            <h3 className="text-xl font-bold text-white group-hover:text-white mb-2 transition-colors">
               {project.name}
             </h3>
-            <p className="text-slate-400 group-hover:text-slate-600 text-sm mb-3 transition-colors">{project.location}</p>
-            <p className="text-slate-300 group-hover:text-slate-700 text-sm leading-relaxed transition-colors">{project.description}</p>
+            <p className="text-slate-400 group-hover:text-slate-300 text-sm mb-3 transition-colors">{project.location}</p>
+            <p className="text-slate-300 group-hover:text-slate-400 text-sm leading-relaxed transition-colors">{project.description}</p>
           </div>
           <div className={`flex items-center gap-2 px-3 py-1 text-xs font-medium border transition-all ${getStatusColor(project.status)}`}>
             {getStatusIcon(project.status)}
@@ -70,18 +71,18 @@ const ProjectCard = ({ project, index }) => {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-700/50 group-hover:border-slate-300/50 transition-colors">
+        <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-700/50 group-hover:border-slate-600/50 transition-colors">
           <div className="text-center">
-            <div className="text-2xl font-bold text-emerald-400 group-hover:text-emerald-700 mb-1 transition-colors">
+            <div className="text-2xl font-bold text-emerald-400 group-hover:text-emerald-300 mb-1 transition-colors">
               {project.carbonCredits.toLocaleString()}
             </div>
-            <div className="text-xs text-slate-400 group-hover:text-slate-600 uppercase tracking-wider transition-colors">Carbon Credits</div>
+            <div className="text-xs text-slate-400 group-hover:text-slate-500 uppercase tracking-wider transition-colors">Carbon Credits</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-400 group-hover:text-blue-700 mb-1 transition-colors">
+            <div className="text-2xl font-bold text-blue-400 group-hover:text-blue-300 mb-1 transition-colors">
               {project.area} ha
             </div>
-            <div className="text-xs text-slate-400 group-hover:text-slate-600 uppercase tracking-wider transition-colors">Restored Area</div>
+            <div className="text-xs text-slate-400 group-hover:text-slate-500 uppercase tracking-wider transition-colors">Restored Area</div>
           </div>
         </div>
       </div>
@@ -91,12 +92,12 @@ const ProjectCard = ({ project, index }) => {
 
 const FeatureCard = ({ icon: Icon, title, description, delay }) => {
   return (
-    <div className={`feature-card group bg-slate-900/40 border border-transparent p-6 hover:bg-white hover:border-blue-400 transition-all duration-300 cursor-pointer active:scale-[0.98]`}>
-      <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 border border-blue-400/20 mb-4 mx-auto group-hover:bg-blue-200 group-hover:border-blue-400/50 transition-colors">
-        <Icon className="w-6 h-6 text-blue-400 group-hover:text-blue-700 transition-colors" />
+    <div className={`feature-card group bg-slate-900/40 border border-transparent p-6 hover:bg-slate-800 hover:border-blue-400 transition-all duration-300 cursor-pointer active:scale-[0.98]`}>
+      <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 border border-blue-400/20 mb-4 mx-auto group-hover:bg-blue-600/20 group-hover:border-blue-500/50 transition-colors">
+        <Icon className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
       </div>
-      <h3 className="text-lg font-semibold text-white group-hover:text-slate-900 mb-3 text-center transition-colors">{title}</h3>
-      <p className="text-slate-400 group-hover:text-slate-700 text-sm leading-relaxed text-center transition-colors">{description}</p>
+      <h3 className="text-lg font-semibold text-white group-hover:text-white mb-3 text-center transition-colors">{title}</h3>
+      <p className="text-slate-400 group-hover:text-slate-400 text-sm leading-relaxed text-center transition-colors">{description}</p>
     </div>
   );
 };
@@ -110,6 +111,7 @@ const LandingPage = () => {
   const titleRef = useRef(null);
 
   const projects = mockProjects;
+  const navigate = useNavigate();
 
   useEffect(() => {
     setMounted(true);
@@ -193,6 +195,14 @@ const LandingPage = () => {
       description: "Automated carbon credit calculation and issuance based on verified data"
     }
   ];
+  
+  const handleLogin = () => {
+    navigate('/login');
+  };
+
+  const handleSignup = () => {
+    navigate('/signup');
+  };
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-950">
@@ -200,7 +210,7 @@ const LandingPage = () => {
       <div 
         className="bg-parallax absolute top-0 left-0 w-full h-[150%] z-0"
         style={{
-          backgroundImage: `url('/mangrove.jpg')`, // Updated path to your image
+          backgroundImage: `url('/5.jpeg')`, 
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed'
@@ -209,11 +219,30 @@ const LandingPage = () => {
       
       {/* Gradient Overlay */}
       <div className="absolute inset-0 z-1 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/90" />
+
+      {/* Header with Navigation Buttons */}
+      <header className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-end items-center bg-slate-950/20 backdrop-blur-md border-b border-slate-800/50">
+        <div className="hidden">Logo/Title</div>
+        <div className="flex items-center gap-4">
+          <button 
+            className="px-5 py-2 border border-blue-400 text-blue-400 font-semibold transition-all duration-300 hover:bg-blue-800/30 hover:text-white active:scale-[0.98] cursor-pointer"
+            onClick={handleSignup}
+          >
+            Signup
+          </button>
+          <button 
+            className="px-5 py-2 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-800 hover:text-white active:scale-[0.98] cursor-pointer"
+            onClick={handleLogin}
+          >
+            Login
+          </button>
+        </div>
+      </header>
       
       {/* Content Wrapper */}
       <div className="relative z-10">
         {/* Hero Section */}
-        <div className="min-h-screen flex flex-col justify-center items-center px-6 text-center">
+        <div className="min-h-screen flex flex-col justify-center items-center px-6 text-center pt-24 md:pt-0">
           <div className="max-w-6xl mx-auto space-y-8" ref={heroRef}>
             <div className="hero-icon flex justify-center mb-8">
               <div className="p-6 bg-blue-500/10 border-2 border-blue-400/20 backdrop-blur-sm">
@@ -274,21 +303,21 @@ const LandingPage = () => {
             <p className="text-slate-400">Real-time data from our global network</p>
           </div>
           <div className="grid md:grid-cols-4 gap-6">
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-white hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-blue-400 group-hover:text-slate-900 mb-2 transition-colors">{stats.totalProjects}</div>
-              <div className="text-slate-300 group-hover:text-slate-700 uppercase tracking-widest text-sm transition-colors">Active Projects</div>
+            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
+              <div className="text-4xl font-bold text-blue-400 group-hover:text-blue-300 mb-2 transition-colors">{stats.totalProjects}</div>
+              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Active Projects</div>
             </div>
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-white hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-emerald-400 group-hover:text-emerald-700 mb-2 transition-colors">{stats.verifiedProjects}</div>
-              <div className="text-slate-300 group-hover:text-slate-700 uppercase tracking-widest text-sm transition-colors">Verified Projects</div>
+            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
+              <div className="text-4xl font-bold text-emerald-400 group-hover:text-emerald-300 mb-2 transition-colors">{stats.verifiedProjects}</div>
+              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Verified Projects</div>
             </div>
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-white hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-green-400 group-hover:text-green-700 mb-2 transition-colors">{stats.totalCredits.toLocaleString()}</div>
-              <div className="text-slate-300 group-hover:text-slate-700 uppercase tracking-widest text-sm transition-colors">Carbon Credits</div>
+            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
+              <div className="text-4xl font-bold text-green-400 group-hover:text-green-300 mb-2 transition-colors">{stats.totalCredits.toLocaleString()}</div>
+              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Carbon Credits</div>
             </div>
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-white hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-teal-400 group-hover:text-teal-700 mb-2 transition-colors">{stats.totalArea.toFixed(1)}</div>
-              <div className="text-slate-300 group-hover:text-slate-700 uppercase tracking-widest text-sm transition-colors">Hectares Restored</div>
+            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
+              <div className="text-4xl font-bold text-teal-400 group-hover:text-teal-300 mb-2 transition-colors">{stats.totalArea.toFixed(1)}</div>
+              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Hectares Restored</div>
             </div>
           </div>
         </div>
@@ -310,18 +339,22 @@ const LandingPage = () => {
 
         {/* Call to Action */}
         <div className="max-w-4xl mx-auto px-6 py-20 text-center animated-section">
-          <div className="bg-slate-900/40 backdrop-blur-md border border-transparent p-12 transition-all duration-300 hover:bg-white hover:border-blue-400 active:scale-[0.98]">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 hover:text-slate-900 transition-colors">
+          <div className="bg-slate-900/40 backdrop-blur-md border border-transparent p-12 transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 group-hover:text-white transition-colors">
               Ready to Make an Impact?
             </h2>
-            <p className="text-slate-300 text-lg mb-8 leading-relaxed hover:text-slate-700 transition-colors">
+            <p className="text-slate-300 text-lg mb-8 leading-relaxed group-hover:text-slate-400 transition-colors">
               Join the future of carbon credit verification and help restore our blue carbon ecosystems
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-300 active:scale-[0.98]">
+              <button 
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+              >
                 Start a Project
               </button>
-              <button className="px-8 py-3 border border-slate-600 text-slate-300 hover:bg-blue-600 hover:border-blue-600 hover:text-white font-semibold transition-all duration-300 active:scale-[0.98]">
+              <button 
+                className="px-8 py-3 border border-slate-600 text-slate-300 hover:bg-blue-600 hover:border-blue-600 hover:text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+              >
                 Learn More
               </button>
             </div>

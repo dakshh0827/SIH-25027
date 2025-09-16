@@ -1,6 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowRight, ChevronLeft, Building, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+// Zod schema for NGO details
+const ngoSchema = z.object({
+  ngoLegalName: z.string().min(1, "Legal Name is required."),
+  regId: z.string().min(1, "Registration Number is required."),
+  regType: z.string().min(1, "Registration Type is required."),
+  regCertificate: z.any().refine((fileList) => fileList?.length > 0, "Registration Certificate is required."),
+  panNumber: z.string().regex(/^[A-Z]{5}\d{4}[A-Z]{1}$/, "Invalid PAN format."),
+  yearOfEstablishment: z.string().refine(
+    (val) => !isNaN(parseInt(val)) && parseInt(val) <= new Date().getFullYear(),
+    "Invalid year."
+  ),
+});
+
+// Zod schema for Panchayat details
+const panchayatSchema = z.object({
+  panchayatCode: z.string().min(1, "Panchayat Code is required."),
+  panchayatName: z.string().min(1, "Panchayat Name is required."),
+  sarpanchName: z.string().min(1, "Sarpanch Name is required."),
+  repIdProof: z.any().refine((fileList) => fileList?.length > 0, "ID Proof is required."),
+  officialLetter: z.any().refine((fileList) => fileList?.length > 0, "Official Letter is required."),
+  panchayatSeal: z.any().refine((fileList) => fileList?.length > 0, "Panchayat Seal is required."),
+});
 
 const OrganizationDetailsStep = ({
   formData,
@@ -9,318 +35,210 @@ const OrganizationDetailsStep = ({
   onBack,
 }) => {
   const [orgType, setOrgType] = useState(formData.organizationType || "ngo");
+  
+  const currentSchema = orgType === "ngo" ? ngoSchema : panchayatSchema;
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: zodResolver(currentSchema),
+  });
+
+  // Reset form state when orgType changes
+  useEffect(() => {
+    reset();
+  }, [orgType, reset]);
+
+  const onSubmit = (data) => {
+    // Merge data from the current form with the parent form data
+    onNext({ ...formData, ...data, organizationType: orgType });
+  };
+
+  const handleOrgTypeChange = (type) => {
+    setOrgType(type);
+    handleChange({
+        target: { name: 'organizationType', value: type }
+    });
+  };
 
   const renderNgoForm = () => (
     <div className="space-y-4">
+      {/* NGO Legal Name */}
       <div>
-        <label
-          htmlFor="ngoLegalName"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="ngoLegalName" className="block text-sm font-medium text-slate-300">
           NGO Legal Name
         </label>
         <input
           type="text"
-          name="ngoLegalName"
           id="ngoLegalName"
-          value={formData.ngoLegalName || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("ngoLegalName")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.ngoLegalName && <p className="mt-1 text-sm text-red-400">{errors.ngoLegalName.message}</p>}
       </div>
+
+      {/* Registration Number */}
       <div>
-        <label
-          htmlFor="regId"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="regId" className="block text-sm font-medium text-slate-300">
           Registration Number
         </label>
         <input
           type="text"
-          name="regId"
           id="regId"
-          value={formData.regId || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("regId")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.regId && <p className="mt-1 text-sm text-red-400">{errors.regId.message}</p>}
       </div>
+
+      {/* Registration Type */}
       <div>
-        <label
-          htmlFor="regType"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="regType" className="block text-sm font-medium text-slate-300">
           Registration Type
         </label>
         <input
           type="text"
-          name="regType"
           id="regType"
-          value={formData.regType || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("regType")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.regType && <p className="mt-1 text-sm text-red-400">{errors.regType.message}</p>}
       </div>
+
+      {/* Registration Certificate Upload */}
       <div>
-        <label
-          htmlFor="regCertificate"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="regCertificate" className="block text-sm font-medium text-slate-300">
           Registration Certificate Upload
         </label>
         <input
           type="file"
-          name="regCertificate"
           id="regCertificate"
-          onChange={handleChange}
+          {...register("regCertificate")}
           className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 
+            file:mr-4 file:py-2 file:px-4 file:border-0 
             file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          required
         />
+        {errors.regCertificate && <p className="mt-1 text-sm text-red-400">{errors.regCertificate.message}</p>}
       </div>
+      
+      {/* PAN Number (Organization) */}
       <div>
-        <label
-          htmlFor="panNumber"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="panNumber" className="block text-sm font-medium text-slate-300">
           PAN Number (Organization)
         </label>
         <input
           type="text"
-          name="panNumber"
           id="panNumber"
-          value={formData.panNumber || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("panNumber")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.panNumber && <p className="mt-1 text-sm text-red-400">{errors.panNumber.message}</p>}
       </div>
+      
+      {/* Year of Establishment */}
       <div>
-        <label
-          htmlFor="panUpload"
-          className="block text-sm font-medium text-slate-300"
-        >
-          PAN Upload
-        </label>
-        <input
-          type="file"
-          name="panUpload"
-          id="panUpload"
-          onChange={handleChange}
-          className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 
-            file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          required
-        />
-      </div>
-      <div>
-        <label
-          htmlFor="bankProof"
-          className="block text-sm font-medium text-slate-300"
-        >
-          Bank Account Proof
-        </label>
-        <input
-          type="file"
-          name="bankProof"
-          id="bankProof"
-          onChange={handleChange}
-          className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 
-            file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          required
-        />
-      </div>
-      <div>
-        <label
-          htmlFor="signatoryName"
-          className="block text-sm font-medium text-slate-300"
-        >
-          Authorized Signatory Name
-        </label>
-        <input
-          type="text"
-          name="signatoryName"
-          id="signatoryName"
-          value={formData.signatoryName || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
-        />
-      </div>
-      <div>
-        <label
-          htmlFor="signatoryRole"
-          className="block text-sm font-medium text-slate-300"
-        >
-          Authorized Signatory Role
-        </label>
-        <input
-          type="text"
-          name="signatoryRole"
-          id="signatoryRole"
-          value={formData.signatoryRole || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
-        />
-      </div>
-      <div>
-        <label
-          htmlFor="signatoryIdProof"
-          className="block text-sm font-medium text-slate-300"
-        >
-          Authorized Signatory ID Proof
-        </label>
-        <input
-          type="file"
-          name="signatoryIdProof"
-          id="signatoryIdProof"
-          onChange={handleChange}
-          className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 
-            file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          required
-        />
-      </div>
-      <div>
-        <label
-          htmlFor="yearOfEstablishment"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="yearOfEstablishment" className="block text-sm font-medium text-slate-300">
           Year of Establishment
         </label>
         <input
           type="number"
-          name="yearOfEstablishment"
           id="yearOfEstablishment"
-          value={formData.yearOfEstablishment || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("yearOfEstablishment")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.yearOfEstablishment && <p className="mt-1 text-sm text-red-400">{errors.yearOfEstablishment.message}</p>}
       </div>
     </div>
   );
 
   const renderPanchayatForm = () => (
     <div className="space-y-4">
+      {/* Panchayat Code */}
       <div>
-        <label
-          htmlFor="panchayatCode"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="panchayatCode" className="block text-sm font-medium text-slate-300">
           Panchayat Code
         </label>
         <input
           type="text"
-          name="panchayatCode"
           id="panchayatCode"
-          value={formData.panchayatCode || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("panchayatCode")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.panchayatCode && <p className="mt-1 text-sm text-red-400">{errors.panchayatCode.message}</p>}
       </div>
+
+      {/* Panchayat Name */}
       <div>
-        <label
-          htmlFor="panchayatName"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="panchayatName" className="block text-sm font-medium text-slate-300">
           Panchayat Name
         </label>
         <input
           type="text"
-          name="panchayatName"
           id="panchayatName"
-          value={formData.panchayatName || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("panchayatName")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.panchayatName && <p className="mt-1 text-sm text-red-400">{errors.panchayatName.message}</p>}
       </div>
+
+      {/* Sarpanch / Authorized Representative Name */}
       <div>
-        <label
-          htmlFor="sarpanchName"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="sarpanchName" className="block text-sm font-medium text-slate-300">
           Sarpanch / Authorized Representative Name
         </label>
         <input
           type="text"
-          name="sarpanchName"
           id="sarpanchName"
-          value={formData.sarpanchName || ""}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md bg-slate-700/50 border-slate-600 text-white shadow-sm 
-            focus:border-green-500 focus:ring-green-500"
-          required
+          {...register("sarpanchName")}
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
         />
+        {errors.sarpanchName && <p className="mt-1 text-sm text-red-400">{errors.sarpanchName.message}</p>}
       </div>
+
+      {/* Authorized Representative ID Proof */}
       <div>
-        <label
-          htmlFor="repIdProof"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="repIdProof" className="block text-sm font-medium text-slate-300">
           Authorized Representative ID Proof
         </label>
         <input
           type="file"
-          name="repIdProof"
           id="repIdProof"
-          onChange={handleChange}
+          {...register("repIdProof")}
           className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 
+            file:mr-4 file:py-2 file:px-4 file:border-0 
             file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          required
         />
+        {errors.repIdProof && <p className="mt-1 text-sm text-red-400">{errors.repIdProof.message}</p>}
       </div>
+
+      {/* Official Letter */}
       <div>
-        <label
-          htmlFor="officialLetter"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="officialLetter" className="block text-sm font-medium text-slate-300">
           Official Letter (on Panchayat Letterhead)
         </label>
         <input
           type="file"
-          name="officialLetter"
           id="officialLetter"
-          onChange={handleChange}
+          {...register("officialLetter")}
           className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 
+            file:mr-4 file:py-2 file:px-4 file:border-0 
             file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          required
         />
+        {errors.officialLetter && <p className="mt-1 text-sm text-red-400">{errors.officialLetter.message}</p>}
       </div>
+
+      {/* Panchayat Seal/Stamp */}
       <div>
-        <label
-          htmlFor="panchayatSeal"
-          className="block text-sm font-medium text-slate-300"
-        >
+        <label htmlFor="panchayatSeal" className="block text-sm font-medium text-slate-300">
           Panchayat Seal/Stamp
         </label>
         <input
           type="file"
-          name="panchayatSeal"
           id="panchayatSeal"
-          onChange={handleChange}
+          {...register("panchayatSeal")}
           className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 
+            file:mr-4 file:py-2 file:px-4 file:border-0 
             file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
         />
+        {errors.panchayatSeal && <p className="mt-1 text-sm text-red-400">{errors.panchayatSeal.message}</p>}
       </div>
     </div>
   );
@@ -338,8 +256,9 @@ const OrganizationDetailsStep = ({
       {/* Toggle Buttons */}
       <div className="flex gap-4">
         <button
-          onClick={() => setOrgType("ngo")}
-          className={`flex-1 flex flex-col items-center p-4 rounded-lg border transition-all ${
+          type="button"
+          onClick={() => handleOrgTypeChange("ngo")}
+          className={`flex-1 flex flex-col items-center p-4 border transition-all active:scale-[0.98] ${
             orgType === "ngo"
               ? "bg-green-600/30 border-green-500 text-white"
               : "bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700"
@@ -349,8 +268,9 @@ const OrganizationDetailsStep = ({
           <span className="font-medium">NGO</span>
         </button>
         <button
-          onClick={() => setOrgType("panchayat")}
-          className={`flex-1 flex flex-col items-center p-4 rounded-lg border transition-all ${
+          type="button"
+          onClick={() => handleOrgTypeChange("panchayat")}
+          className={`flex-1 flex flex-col items-center p-4 border transition-all active:scale-[0.98] ${
             orgType === "panchayat"
               ? "bg-green-600/30 border-green-500 text-white"
               : "bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700"
@@ -363,44 +283,33 @@ const OrganizationDetailsStep = ({
 
       {/* Animated Form Section */}
       <AnimatePresence mode="wait">
-        {orgType && (
-          <motion.form
-            key={orgType}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              onNext(orgType);
-            }}
-            className="space-y-6"
-          >
-            {orgType === "ngo" ? renderNgoForm() : renderPanchayatForm()}
+        <motion.form
+          key={orgType}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6"
+        >
+          {orgType === "ngo" ? renderNgoForm() : renderPanchayatForm()}
 
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={onBack}
-                className="flex-1 flex items-center justify-center px-4 py-2 border border-slate-600 
-                  rounded-md shadow-sm text-sm font-medium text-slate-300 
-                  hover:bg-slate-700/50 focus:outline-none focus:ring-2 
-                  focus:ring-offset-2 focus:ring-slate-500 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" /> Back
-              </button>
-              <button
-                type="submit"
-                className="flex-1 flex items-center justify-center px-4 py-2 border border-transparent 
-                  rounded-md shadow-sm text-sm font-medium text-white 
-                  bg-green-600 hover:bg-green-700 focus:outline-none 
-                  focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-              >
-                Next Step <ArrowRight className="h-4 w-4 ml-2" />
-              </button>
-            </div>
-          </motion.form>
-        )}
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex-1 flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" /> Back
+            </button>
+            <button
+              type="submit"
+              className="flex-1 flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
+            >
+              Next Step <ArrowRight className="h-4 w-4 ml-2" />
+            </button>
+          </div>
+        </motion.form>
       </AnimatePresence>
     </div>
   );
