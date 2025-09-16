@@ -3,11 +3,10 @@ import PersonalDetailsStep from './personalDetailsStep';
 import RoleSelectionStep from './RoleSelectionStep';
 import AdminDetailsStep from './AdminDetailsStep';
 import OrganizationDetailsStep from './OrganizationDetailsStep';
-import CommonDetailsStep from './CommonDetailsStep';
-import SuccessStep from './SuccessStep';
 import { Waves } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const SignupForm = ({ setCurrentView }) => {
+const SignupForm = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
@@ -20,43 +19,63 @@ const SignupForm = ({ setCurrentView }) => {
     govtIdImage: null,
     metamaskAccount: '',
     // Organization fields
-    organizationType: '', // 'ngo' or 'panchayat'
-    ngoLegalName: '',
-    regId: '',
-    regType: '',
-    regCertificate: null,
-    panNumber: '',
-    panUpload: null,
-    bankProof: null,
-    signatoryName: '',
-    signatoryRole: '',
-    signatoryIdProof: null,
-    yearOfEstablishment: '',
-    panchayatCode: '',
-    panchayatName: '',
-    sarpanchName: '',
-    repIdProof: null,
-    officialLetter: null,
-    panchayatSeal: null,
-    // Common fields
-    displayName: '',
-    officialAddress: '',
-    jurisdictionState: '',
-    district: '',
-    primaryContactName: '',
-    primaryContactRole: '',
-    primaryContactPhone: '',
-    primaryContactEmail: '',
-    geoCoordinates: '',
-    consent: false,
-    blockchainWallet: ''
+    organizationType: '', 
+    // FPO, Manufacturer, and Laboratory fields
+    fpoName: '',
+    regNumber: '',
+    pan: '',
+    gstin: '',
+    registeredAddress: '',
+    authorizedRepresentative: '',
+    manufacturerName: '',
+    ayushLicenseNumber: '',
+    labName: '',
+    nablAccreditationNumber: '',
+    scopeOfNablAccreditation: '',
   });
 
+  const navigate = useNavigate();
+
   const handleNext = (newData) => {
-    setFormData(prev => ({ ...prev, ...newData }));
-    setStep(prev => prev + 1);
+    const updatedData = { ...formData, ...newData };
+    setFormData(updatedData);
+
+    // If the next step is after OrganizationDetailsStep or AdminDetailsStep,
+    // it means the form is complete and we can submit
+    if (step === 2 && updatedData.role === 'admin') {
+        handleSubmit(updatedData);
+    } else if (step === 3) {
+        handleSubmit(updatedData);
+    } else {
+        setStep(prev => prev + 1);
+    }
   };
+
   const handleBack = () => setStep(prev => prev - 1);
+
+  const handleSubmit = (finalData) => {
+    // Here you would typically send the data to your backend
+    console.log("Final form data:", finalData);
+    
+    // Redirect based on the user's role
+    switch (finalData.role) {
+      case 'fpo':
+        navigate("/farmer");
+        break;
+      case 'manufacturers':
+        navigate("/manufacturer");
+        break;
+      case 'laboratories':
+        navigate("/labs");
+        break;
+      case 'admin':
+        navigate("/admin-dashboard"); // Assuming a route for admin
+        break;
+      default:
+        console.error("Unknown role, cannot redirect.");
+        break;
+    }
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -66,15 +85,12 @@ const SignupForm = ({ setCurrentView }) => {
         return <RoleSelectionStep onSelectRole={(role) => handleNext({ role })} onBack={handleBack} />;
       case 3:
         if (formData.role === 'admin') {
-          return <AdminDetailsStep onNext={handleNext} onBack={handleBack} />;
-        } else if (formData.role === 'ngo') {
+          // Admin form should not be here, it should be handled in step 2
+          return null; 
+        } else if ('ngo/community'.includes(formData.role)) {
           return <OrganizationDetailsStep onNext={handleNext} onBack={handleBack} formData={formData} />;
         }
         return null;
-      case 4:
-        return <CommonDetailsStep onNext={handleNext} onBack={handleBack} />;
-      case 5:
-        return <SuccessStep setCurrentView={setCurrentView} />;
       default:
         return null;
     }

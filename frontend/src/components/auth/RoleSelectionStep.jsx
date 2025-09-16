@@ -13,15 +13,15 @@ const RoleSelectionStep = ({ onSelectRole, onBack }) => {
         >
           <Shield className="h-10 w-10 text-blue-400 mb-3" />
           <div className="font-medium text-lg">Admin</div>
-          <div className="text-sm text-slate-400">Verify projects & manage registry</div>
+          <div className="text-sm text-slate-400">Manage the stake</div>
         </button>
         <button
           onClick={() => onSelectRole('ngo')}
           className="w-full flex flex-col items-center p-6 bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 transition-colors duration-300 text-white text-center active:scale-[0.98]"
         >
           <Users className="h-10 w-10 text-green-400 mb-3" />
-          <div className="font-medium text-lg">NGO / Community</div>
-          <div className="text-sm text-slate-400">Submit projects & earn credits</div>
+          <div className="font-medium text-lg">Stakeholder</div>
+          <div className="text-sm text-slate-400">Hold your stake</div>
         </button>
       </div>
       <button

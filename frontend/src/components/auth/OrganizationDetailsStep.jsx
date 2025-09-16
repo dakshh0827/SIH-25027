@@ -1,247 +1,350 @@
 import React, { useState, useEffect } from "react";
-import { ArrowRight, ChevronLeft, Building, FileText } from "lucide-react";
+import { ArrowRight, ChevronLeft, Tractor, Factory, TestTubeDiagonal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-// Zod schema for NGO details
-const ngoSchema = z.object({
-  ngoLegalName: z.string().min(1, "Legal Name is required."),
-  regId: z.string().min(1, "Registration Number is required."),
-  regType: z.string().min(1, "Registration Type is required."),
-  regCertificate: z.any().refine((fileList) => fileList?.length > 0, "Registration Certificate is required."),
-  panNumber: z.string().regex(/^[A-Z]{5}\d{4}[A-Z]{1}$/, "Invalid PAN format."),
-  yearOfEstablishment: z.string().refine(
-    (val) => !isNaN(parseInt(val)) && parseInt(val) <= new Date().getFullYear(),
-    "Invalid year."
-  ),
+// Zod schema for FPO details
+const fpoSchema = z.object({
+  fpoName: z.string().min(1, "FPO Name is required."),
+  regNumber: z.string().min(1, "Registration Number is required."),
+  pan: z.string().regex(/^[A-Z]{5}\d{4}[A-Z]{1}$/, "Invalid PAN format."),
+  gstin: z.string().regex(/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z[A-Z\d]{1}$/, "Invalid GSTIN format."),
+  registeredAddress: z.string().min(1, "Registered Address is required."),
+  authorizedRepresentative: z.string().min(1, "Authorized Representative is required."),
 });
 
-// Zod schema for Panchayat details
-const panchayatSchema = z.object({
-  panchayatCode: z.string().min(1, "Panchayat Code is required."),
-  panchayatName: z.string().min(1, "Panchayat Name is required."),
-  sarpanchName: z.string().min(1, "Sarpanch Name is required."),
-  repIdProof: z.any().refine((fileList) => fileList?.length > 0, "ID Proof is required."),
-  officialLetter: z.any().refine((fileList) => fileList?.length > 0, "Official Letter is required."),
-  panchayatSeal: z.any().refine((fileList) => fileList?.length > 0, "Panchayat Seal is required."),
+// Zod schema for Manufacturer details
+const manufacturerSchema = z.object({
+  manufacturerName: z.string().min(1, "Manufacturer Name is required."),
+  ayushLicenseNumber: z.string().min(1, "AYUSH License Number is required."),
+  regNumber: z.string().min(1, "Registration Number is required."),
+  pan: z.string().regex(/^[A-Z]{5}\d{4}[A-Z]{1}$/, "Invalid PAN format."),
+  gstin: z.string().regex(/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z[A-Z\d]{1}$/, "Invalid GSTIN format."),
+  registeredAddress: z.string().min(1, "Registered Address is required."),
+  authorizedRepresentative: z.string().min(1, "Authorized Representative is required."),
+});
+
+// Zod schema for Laboratory details
+const labSchema = z.object({
+  labName: z.string().min(1, "Lab Name is required."),
+  nablAccreditationNumber: z.string().min(1, "NABL Accreditation Number is required."),
+  scopeOfNablAccreditation: z.string().min(1, "Scope of NABL Accreditation is required."),
+  pan: z.string().regex(/^[A-Z]{5}\d{4}[A-Z]{1}$/, "Invalid PAN format."),
+  gstin: z.string().regex(/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z[A-Z\d]{1}$/, "Invalid GSTIN format."),
+  registeredAddress: z.string().min(1, "Registered Address is required."),
+  authorizedRepresentative: z.string().min(1, "Authorized Representative is required."),
 });
 
 const OrganizationDetailsStep = ({
   formData,
-  handleChange,
   onNext,
   onBack,
 }) => {
-  const [orgType, setOrgType] = useState(formData.organizationType || "ngo");
-  
-  const currentSchema = orgType === "ngo" ? ngoSchema : panchayatSchema;
+  const [orgType, setOrgType] = useState(formData.organizationType || "fpo");
+
+  const schemaMap = {
+    fpo: fpoSchema,
+    manufacturers: manufacturerSchema,
+    laboratories: labSchema,
+  };
+
+  const currentSchema = schemaMap[orgType];
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     resolver: zodResolver(currentSchema),
   });
 
-  // Reset form state when orgType changes
   useEffect(() => {
     reset();
   }, [orgType, reset]);
 
   const onSubmit = (data) => {
-    // Merge data from the current form with the parent form data
     onNext({ ...formData, ...data, organizationType: orgType });
   };
 
-  const handleOrgTypeChange = (type) => {
-    setOrgType(type);
-    handleChange({
-        target: { name: 'organizationType', value: type }
-    });
+  const renderForm = () => {
+    switch (orgType) {
+      case "fpo":
+        return (
+          <div className="space-y-4">
+            {/* FPO Name */}
+            <div>
+              <label htmlFor="fpoName" className="block text-sm font-medium text-slate-300">
+                FPO Name
+              </label>
+              <input
+                type="text"
+                id="fpoName"
+                {...register("fpoName")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.fpoName && <p className="mt-1 text-sm text-red-400">{errors.fpoName.message}</p>}
+            </div>
+            {/* Registration Number */}
+            <div>
+              <label htmlFor="regNumber" className="block text-sm font-medium text-slate-300">
+                Registration Number
+              </label>
+              <input
+                type="text"
+                id="regNumber"
+                {...register("regNumber")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.regNumber && <p className="mt-1 text-sm text-red-400">{errors.regNumber.message}</p>}
+            </div>
+            {/* PAN */}
+            <div>
+              <label htmlFor="pan" className="block text-sm font-medium text-slate-300">
+                PAN
+              </label>
+              <input
+                type="text"
+                id="pan"
+                {...register("pan")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
+            </div>
+            {/* GSTIN */}
+            <div>
+              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300">
+                GSTIN
+              </label>
+              <input
+                type="text"
+                id="gstin"
+                {...register("gstin")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
+            </div>
+            {/* Registered Address */}
+            <div>
+              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300">
+                Registered Address
+              </label>
+              <input
+                type="text"
+                id="registeredAddress"
+                {...register("registeredAddress")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
+            </div>
+            {/* Authorized Representative */}
+            <div>
+              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300">
+                Authorized Representative
+              </label>
+              <input
+                type="text"
+                id="authorizedRepresentative"
+                {...register("authorizedRepresentative")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
+            </div>
+          </div>
+        );
+      case "manufacturers":
+        return (
+          <div className="space-y-4">
+            {/* Manufacturer Name */}
+            <div>
+              <label htmlFor="manufacturerName" className="block text-sm font-medium text-slate-300">
+                Manufacturer Name
+              </label>
+              <input
+                type="text"
+                id="manufacturerName"
+                {...register("manufacturerName")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.manufacturerName && <p className="mt-1 text-sm text-red-400">{errors.manufacturerName.message}</p>}
+            </div>
+            {/* AYUSH License Number */}
+            <div>
+              <label htmlFor="ayushLicenseNumber" className="block text-sm font-medium text-slate-300">
+                AYUSH License Number
+              </label>
+              <input
+                type="text"
+                id="ayushLicenseNumber"
+                {...register("ayushLicenseNumber")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.ayushLicenseNumber && <p className="mt-1 text-sm text-red-400">{errors.ayushLicenseNumber.message}</p>}
+            </div>
+            {/* Registration Number */}
+            <div>
+              <label htmlFor="regNumber" className="block text-sm font-medium text-slate-300">
+                Registration Number
+              </label>
+              <input
+                type="text"
+                id="regNumber"
+                {...register("regNumber")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.regNumber && <p className="mt-1 text-sm text-red-400">{errors.regNumber.message}</p>}
+            </div>
+            {/* PAN */}
+            <div>
+              <label htmlFor="pan" className="block text-sm font-medium text-slate-300">
+                PAN
+              </label>
+              <input
+                type="text"
+                id="pan"
+                {...register("pan")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
+            </div>
+            {/* GSTIN */}
+            <div>
+              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300">
+                GSTIN
+              </label>
+              <input
+                type="text"
+                id="gstin"
+                {...register("gstin")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
+            </div>
+            {/* Registered Address */}
+            <div>
+              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300">
+                Registered Address
+              </label>
+              <input
+                type="text"
+                id="registeredAddress"
+                {...register("registeredAddress")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
+            </div>
+            {/* Authorized Representative */}
+            <div>
+              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300">
+                Authorized Representative
+              </label>
+              <input
+                type="text"
+                id="authorizedRepresentative"
+                {...register("authorizedRepresentative")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
+            </div>
+          </div>
+        );
+      case "laboratories":
+        return (
+          <div className="space-y-4">
+            {/* Lab Name */}
+            <div>
+              <label htmlFor="labName" className="block text-sm font-medium text-slate-300">
+                Lab Name
+              </label>
+              <input
+                type="text"
+                id="labName"
+                {...register("labName")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.labName && <p className="mt-1 text-sm text-red-400">{errors.labName.message}</p>}
+            </div>
+            {/* NABL Accreditation Number */}
+            <div>
+              <label htmlFor="nablAccreditationNumber" className="block text-sm font-medium text-slate-300">
+                NABL Accreditation Number
+              </label>
+              <input
+                type="text"
+                id="nablAccreditationNumber"
+                {...register("nablAccreditationNumber")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.nablAccreditationNumber && <p className="mt-1 text-sm text-red-400">{errors.nablAccreditationNumber.message}</p>}
+            </div>
+            {/* Scope of NABL Accreditation */}
+            <div>
+              <label htmlFor="scopeOfNablAccreditation" className="block text-sm font-medium text-slate-300">
+                Scope of NABL Accreditation
+              </label>
+              <input
+                type="text"
+                id="scopeOfNablAccreditation"
+                {...register("scopeOfNablAccreditation")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.scopeOfNablAccreditation && <p className="mt-1 text-sm text-red-400">{errors.scopeOfNablAccreditation.message}</p>}
+            </div>
+            {/* PAN */}
+            <div>
+              <label htmlFor="pan" className="block text-sm font-medium text-slate-300">
+                PAN
+              </label>
+              <input
+                type="text"
+                id="pan"
+                {...register("pan")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
+            </div>
+            {/* GSTIN */}
+            <div>
+              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300">
+                GSTIN
+              </label>
+              <input
+                type="text"
+                id="gstin"
+                {...register("gstin")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
+            </div>
+            {/* Registered Address */}
+            <div>
+              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300">
+                Registered Address
+              </label>
+              <input
+                type="text"
+                id="registeredAddress"
+                {...register("registeredAddress")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
+            </div>
+            {/* Authorized Representative */}
+            <div>
+              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300">
+                Authorized Representative
+              </label>
+              <input
+                type="text"
+                id="authorizedRepresentative"
+                {...register("authorizedRepresentative")}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+              />
+              {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
-
-  const renderNgoForm = () => (
-    <div className="space-y-4">
-      {/* NGO Legal Name */}
-      <div>
-        <label htmlFor="ngoLegalName" className="block text-sm font-medium text-slate-300">
-          NGO Legal Name
-        </label>
-        <input
-          type="text"
-          id="ngoLegalName"
-          {...register("ngoLegalName")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.ngoLegalName && <p className="mt-1 text-sm text-red-400">{errors.ngoLegalName.message}</p>}
-      </div>
-
-      {/* Registration Number */}
-      <div>
-        <label htmlFor="regId" className="block text-sm font-medium text-slate-300">
-          Registration Number
-        </label>
-        <input
-          type="text"
-          id="regId"
-          {...register("regId")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.regId && <p className="mt-1 text-sm text-red-400">{errors.regId.message}</p>}
-      </div>
-
-      {/* Registration Type */}
-      <div>
-        <label htmlFor="regType" className="block text-sm font-medium text-slate-300">
-          Registration Type
-        </label>
-        <input
-          type="text"
-          id="regType"
-          {...register("regType")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.regType && <p className="mt-1 text-sm text-red-400">{errors.regType.message}</p>}
-      </div>
-
-      {/* Registration Certificate Upload */}
-      <div>
-        <label htmlFor="regCertificate" className="block text-sm font-medium text-slate-300">
-          Registration Certificate Upload
-        </label>
-        <input
-          type="file"
-          id="regCertificate"
-          {...register("regCertificate")}
-          className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:border-0 
-            file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-        />
-        {errors.regCertificate && <p className="mt-1 text-sm text-red-400">{errors.regCertificate.message}</p>}
-      </div>
-      
-      {/* PAN Number (Organization) */}
-      <div>
-        <label htmlFor="panNumber" className="block text-sm font-medium text-slate-300">
-          PAN Number (Organization)
-        </label>
-        <input
-          type="text"
-          id="panNumber"
-          {...register("panNumber")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.panNumber && <p className="mt-1 text-sm text-red-400">{errors.panNumber.message}</p>}
-      </div>
-      
-      {/* Year of Establishment */}
-      <div>
-        <label htmlFor="yearOfEstablishment" className="block text-sm font-medium text-slate-300">
-          Year of Establishment
-        </label>
-        <input
-          type="number"
-          id="yearOfEstablishment"
-          {...register("yearOfEstablishment")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.yearOfEstablishment && <p className="mt-1 text-sm text-red-400">{errors.yearOfEstablishment.message}</p>}
-      </div>
-    </div>
-  );
-
-  const renderPanchayatForm = () => (
-    <div className="space-y-4">
-      {/* Panchayat Code */}
-      <div>
-        <label htmlFor="panchayatCode" className="block text-sm font-medium text-slate-300">
-          Panchayat Code
-        </label>
-        <input
-          type="text"
-          id="panchayatCode"
-          {...register("panchayatCode")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.panchayatCode && <p className="mt-1 text-sm text-red-400">{errors.panchayatCode.message}</p>}
-      </div>
-
-      {/* Panchayat Name */}
-      <div>
-        <label htmlFor="panchayatName" className="block text-sm font-medium text-slate-300">
-          Panchayat Name
-        </label>
-        <input
-          type="text"
-          id="panchayatName"
-          {...register("panchayatName")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.panchayatName && <p className="mt-1 text-sm text-red-400">{errors.panchayatName.message}</p>}
-      </div>
-
-      {/* Sarpanch / Authorized Representative Name */}
-      <div>
-        <label htmlFor="sarpanchName" className="block text-sm font-medium text-slate-300">
-          Sarpanch / Authorized Representative Name
-        </label>
-        <input
-          type="text"
-          id="sarpanchName"
-          {...register("sarpanchName")}
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-        />
-        {errors.sarpanchName && <p className="mt-1 text-sm text-red-400">{errors.sarpanchName.message}</p>}
-      </div>
-
-      {/* Authorized Representative ID Proof */}
-      <div>
-        <label htmlFor="repIdProof" className="block text-sm font-medium text-slate-300">
-          Authorized Representative ID Proof
-        </label>
-        <input
-          type="file"
-          id="repIdProof"
-          {...register("repIdProof")}
-          className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:border-0 
-            file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-        />
-        {errors.repIdProof && <p className="mt-1 text-sm text-red-400">{errors.repIdProof.message}</p>}
-      </div>
-
-      {/* Official Letter */}
-      <div>
-        <label htmlFor="officialLetter" className="block text-sm font-medium text-slate-300">
-          Official Letter (on Panchayat Letterhead)
-        </label>
-        <input
-          type="file"
-          id="officialLetter"
-          {...register("officialLetter")}
-          className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:border-0 
-            file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-        />
-        {errors.officialLetter && <p className="mt-1 text-sm text-red-400">{errors.officialLetter.message}</p>}
-      </div>
-
-      {/* Panchayat Seal/Stamp */}
-      <div>
-        <label htmlFor="panchayatSeal" className="block text-sm font-medium text-slate-300">
-          Panchayat Seal/Stamp
-        </label>
-        <input
-          type="file"
-          id="panchayatSeal"
-          {...register("panchayatSeal")}
-          className="mt-1 block w-full text-sm text-slate-500 
-            file:mr-4 file:py-2 file:px-4 file:border-0 
-            file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-        />
-        {errors.panchayatSeal && <p className="mt-1 text-sm text-red-400">{errors.panchayatSeal.message}</p>}
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -253,31 +356,45 @@ const OrganizationDetailsStep = ({
         organization.
       </p>
 
-      {/* Toggle Buttons */}
-      <div className="flex gap-4">
+      {/* Sliding Toggle Bar */}
+      <div className="relative flex w-full h-20 bg-slate-700/50 border border-slate-600">
+        <motion.div
+          className="absolute h-full w-1/3 bg-green-600/30 border border-green-500"
+          initial={false}
+          animate={{ 
+            x: orgType === "fpo" ? "0%" : orgType === "manufacturers" ? "100%" : "200%" 
+          }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        />
         <button
           type="button"
-          onClick={() => handleOrgTypeChange("ngo")}
-          className={`flex-1 flex flex-col items-center p-4 border transition-all active:scale-[0.98] ${
-            orgType === "ngo"
-              ? "bg-green-600/30 border-green-500 text-white"
-              : "bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700"
+          onClick={() => setOrgType("fpo")}
+          className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
+            orgType === "fpo" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
         >
-          <Building className="h-8 w-8 mb-2" />
-          <span className="font-medium">NGO</span>
+          <Tractor className="h-8 w-8 mb-1" />
+          <span className="font-medium">FPO</span>
         </button>
         <button
           type="button"
-          onClick={() => handleOrgTypeChange("panchayat")}
-          className={`flex-1 flex flex-col items-center p-4 border transition-all active:scale-[0.98] ${
-            orgType === "panchayat"
-              ? "bg-green-600/30 border-green-500 text-white"
-              : "bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700"
+          onClick={() => setOrgType("manufacturers")}
+          className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
+            orgType === "manufacturers" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
         >
-          <FileText className="h-8 w-8 mb-2" />
-          <span className="font-medium">Panchayat</span>
+          <Factory className="h-8 w-8 mb-1" />
+          <span className="font-medium">Manufacturer</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setOrgType("laboratories")}
+          className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
+            orgType === "laboratories" ? "text-white" : "text-slate-300 hover:text-white"
+          }`}
+        >
+          <TestTubeDiagonal className="h-8 w-8 mb-1" />
+          <span className="font-medium">Laboratory</span>
         </button>
       </div>
 
@@ -292,7 +409,7 @@ const OrganizationDetailsStep = ({
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-6"
         >
-          {orgType === "ngo" ? renderNgoForm() : renderPanchayatForm()}
+          {renderForm()}
 
           <div className="flex gap-4">
             <button
@@ -306,7 +423,7 @@ const OrganizationDetailsStep = ({
               type="submit"
               className="flex-1 flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
             >
-              Next Step <ArrowRight className="h-4 w-4 ml-2" />
+              Complete Signup <ArrowRight className="h-4 w-4 ml-2" />
             </button>
           </div>
         </motion.form>
