@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Users, ChevronLeft, ArrowRight } from 'lucide-react';
+import { Shield, Users, ChevronLeft } from 'lucide-react';
 
 const RoleSelectionStep = ({ onSelectRole, onBack }) => {
   return (
@@ -7,21 +7,24 @@ const RoleSelectionStep = ({ onSelectRole, onBack }) => {
       <h3 className="text-xl text-white font-semibold">Step 2: Select Your Role</h3>
       <p className="text-slate-400">Choose the account type that best describes you.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Admin Role */}
         <button
           onClick={() => onSelectRole('admin')}
           className="w-full flex flex-col items-center p-6 bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 transition-all duration-300 text-white text-center active:scale-[0.98]"
         >
           <Shield className="h-10 w-10 text-blue-400 mb-3" />
           <div className="font-medium text-lg">Admin</div>
-          <div className="text-sm text-slate-400">Manage the stake</div>
+          <div className="text-sm text-slate-400">Verify projects & manage registry</div>
         </button>
+
+        {/* User Role */}
         <button
-          onClick={() => onSelectRole('ngo')}
+          onClick={() => onSelectRole('user')}
           className="w-full flex flex-col items-center p-6 bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 transition-colors duration-300 text-white text-center active:scale-[0.98]"
         >
           <Users className="h-10 w-10 text-green-400 mb-3" />
-          <div className="font-medium text-lg">Stakeholder</div>
-          <div className="text-sm text-slate-400">Hold your stake</div>
+          <div className="font-medium text-lg">User</div>
+          <div className="text-sm text-slate-400">Join a supply chain</div>
         </button>
       </div>
       <button

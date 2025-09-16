@@ -1,48 +1,57 @@
 import React from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom'; // Import BrowserRouter, Routes, and Route
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useAuthStore } from './stores/useAuthStore';
 import LoginScreen from './pages/LoginScreen';
 import LandingPage from './pages/LandingPage';
 import AdminDashboard from './pages/AdminDashboard';
-import NGODashboard from './pages/NGODashboard';
-import Navigation from './components/common/Navigation'; // Updated to work with Router
+import FarmerDashboard from './pages/FarmerDashboard';
+import ManufacturerDashboard from './pages/ManufacturerDashboard';
+import LabsDashboard from './pages/LabsDashboard';
+import Navigation from './components/common/Navigation';
 import SignupForm from './components/auth/SignupForm';
 
 const App = () => {
     const { userType } = useAuthStore();
     const navigate = useNavigate();
 
-    // Use a redirect effect to automatically navigate to the correct dashboard after login
-    // This replaces the manual setCurrentView logic
     React.useEffect(() => {
         if (userType === 'admin') {
             navigate('/admin-dashboard');
-        } else if (userType === 'ngo') {
-            navigate('/ngo-dashboard');
+        } else if (userType === 'farmer') {
+            navigate('/farmer');
+        } else if (userType === 'manufacturer') {
+            navigate('/manufacturer');
+        } else if (userType === 'lab') {
+            navigate('/labs');
         }
     }, [userType, navigate]);
 
     return (
         <div className="min-h-screen">
-            {/* Navigation component will handle its own routing internally */}
-            {/* <Navigation />  */}
-
-            {/* Define application routes */}
             <Routes>
+                {/* Public routes that are always accessible */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginScreen />} />
                 <Route path="/signup" element={<SignupForm />} />
                 
-                {/* Protected routes */}
+                {/* Protected routes are now defined first */}
                 {userType === 'admin' && (
                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 )}
-                {userType === 'ngo' && (
-                    <Route path="/ngo-dashboard" element={<NGODashboard />} />
+                
+                {userType === 'farmer' && (
+                    <Route path="/farmer" element={<FarmerDashboard />} />
+                )}
+                {userType === 'manufacturer' && (
+                    <Route path="/manufacturer" element={<ManufacturerDashboard />} />
+                )}
+                {userType === 'lab' && (
+                    <Route path="/labs" element={<LabsDashboard />} />
                 )}
 
-                {/* You can add a 404 page for unmatched routes */}
-                <Route path="*" element={<LandingPage />} /> 
+                {/* The catch-all route should be the last one in the list */}
+                {/* It will only render if no other routes match */}
+                <Route path="*" element={<LandingPage />} />
             </Routes>
         </div>
     );

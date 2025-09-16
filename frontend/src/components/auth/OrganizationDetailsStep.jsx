@@ -5,8 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-// Zod schema for FPO details
-const fpoSchema = z.object({
+// Zod schema for Farmer details
+const farmerSchema = z.object({
   fpoName: z.string().min(1, "FPO Name is required."),
   regNumber: z.string().min(1, "Registration Number is required."),
   pan: z.string().regex(/^[A-Z]{5}\d{4}[A-Z]{1}$/, "Invalid PAN format."),
@@ -42,12 +42,12 @@ const OrganizationDetailsStep = ({
   onNext,
   onBack,
 }) => {
-  const [orgType, setOrgType] = useState(formData.organizationType || "fpo");
+  const [orgType, setOrgType] = useState(formData.organizationType || "farmer");
 
   const schemaMap = {
-    fpo: fpoSchema,
-    manufacturers: manufacturerSchema,
-    laboratories: labSchema,
+    farmer: farmerSchema,
+    manufacturer: manufacturerSchema,
+    lab: labSchema,
   };
 
   const currentSchema = schemaMap[orgType];
@@ -61,12 +61,13 @@ const OrganizationDetailsStep = ({
   }, [orgType, reset]);
 
   const onSubmit = (data) => {
-    onNext({ ...formData, ...data, organizationType: orgType });
+    // This is the key change: we now set the 'role' based on the submitted form type
+    onNext({ ...formData, ...data, role: orgType });
   };
 
   const renderForm = () => {
     switch (orgType) {
-      case "fpo":
+      case "farmer":
         return (
           <div className="space-y-4">
             {/* FPO Name */}
@@ -149,7 +150,7 @@ const OrganizationDetailsStep = ({
             </div>
           </div>
         );
-      case "manufacturers":
+      case "manufacturer":
         return (
           <div className="space-y-4">
             {/* Manufacturer Name */}
@@ -245,7 +246,7 @@ const OrganizationDetailsStep = ({
             </div>
           </div>
         );
-      case "laboratories":
+      case "lab":
         return (
           <div className="space-y-4">
             {/* Lab Name */}
@@ -361,26 +362,26 @@ const OrganizationDetailsStep = ({
         <motion.div
           className="absolute h-full w-1/3 bg-green-600/30 border border-green-500"
           initial={false}
-          animate={{ 
-            x: orgType === "fpo" ? "0%" : orgType === "manufacturers" ? "100%" : "200%" 
+          animate={{
+            x: orgType === "farmer" ? "0%" : orgType === "manufacturer" ? "100%" : "200%"
           }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         />
         <button
           type="button"
-          onClick={() => setOrgType("fpo")}
+          onClick={() => setOrgType("farmer")}
           className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
-            orgType === "fpo" ? "text-white" : "text-slate-300 hover:text-white"
+            orgType === "farmer" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
         >
           <Tractor className="h-8 w-8 mb-1" />
-          <span className="font-medium">FPO</span>
+          <span className="font-medium">Farmer</span>
         </button>
         <button
           type="button"
-          onClick={() => setOrgType("manufacturers")}
+          onClick={() => setOrgType("manufacturer")}
           className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
-            orgType === "manufacturers" ? "text-white" : "text-slate-300 hover:text-white"
+            orgType === "manufacturer" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
         >
           <Factory className="h-8 w-8 mb-1" />
@@ -388,9 +389,9 @@ const OrganizationDetailsStep = ({
         </button>
         <button
           type="button"
-          onClick={() => setOrgType("laboratories")}
+          onClick={() => setOrgType("lab")}
           className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
-            orgType === "laboratories" ? "text-white" : "text-slate-300 hover:text-white"
+            orgType === "lab" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
         >
           <TestTubeDiagonal className="h-8 w-8 mb-1" />
