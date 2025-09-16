@@ -12,11 +12,11 @@ const router = express.Router();
 router.post(
   "/register",
   upload.single("idProofUrl"),
-  validate(registerSchema),
+  // validate(registerSchema),
   register
 );
 
 // Add validation to the login route as well
-router.post("/login", validate(loginSchema), login);
+router.post("/login", login);
 
 export default router;

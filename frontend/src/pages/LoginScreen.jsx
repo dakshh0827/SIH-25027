@@ -25,21 +25,47 @@ const LoginScreen = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data) => {
-    // This is where you would normally call your API to authenticate the user
-    console.log('Login submitted with data:', data);
+  const onSubmit = async (data) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-    // For demonstration, we'll simulate a successful login and navigate
-    // to a specific dashboard based on a hardcoded email
-    if (data.email === 'admin@nccr.com') {
-      login({ name: 'NCCR Admin' }, 'admin');
-      navigate('/admin-dashboard');
-    } else if (data.email === 'ngo@green.com') {
-      login({ name: 'Green Coast Foundation' }, 'ngo');
-      navigate('/ngo-dashboard');
-    } else {
-      // You can handle an invalid login or a public user here
-      alert('Invalid credentials or access type.');
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Login failed');
+      }
+
+      const { token, user } = await res.json();
+      
+      // Update the Zustand store with the user data and token
+      login(user, token);
+
+      // Redirect based on the user's role from the API response
+      switch (user.role.toLowerCase()) {
+        case 'fpo':
+          navigate("/farmer");
+          break;
+        case 'manufacturer':
+          navigate("/manufacturer");
+          break;
+        case 'laboratory':
+          navigate("/labs");
+          break;
+        case 'admin':
+          navigate("/admin-dashboard");
+          break;
+        default:
+          console.error("Unknown role, cannot redirect.");
+          break;
+      }
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+      console.error(error);
     }
   };
 

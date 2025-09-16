@@ -8,10 +8,10 @@ datasource db {
 }
 
 enum Role {
-  ADMIN
-  FPO
-  MANUFACTURER
-  LABORATORY
+  admin
+  farmer
+  manufacturer
+  lab
 }
 
 model User {

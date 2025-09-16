@@ -1,14 +1,42 @@
-// src/index.js (Corrected)
-import "dotenv/config"; // Use import and ensure 'dotenv' is configured
+// src/index.js (with CORS)
+import "dotenv/config";
 import express from "express";
-import authRoutes from "./routes/authRoutes.js"; // Use relative paths with .js extension
-import dashboardRoutes from "./routes/dashboardRoutes.js"; // Use relative paths with .js extension
+import cors from "cors";
+import authRoutes from "./routes/authRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
 
-app.use(express.json());
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',    // React development server
+    'http://localhost:5173',    // Vite development server
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    // Add your production domain when deploying
+    // 'https://yourdomain.com'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control'
+  ]
+};
 
-// Mount the auth routes
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Mount the routes
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
