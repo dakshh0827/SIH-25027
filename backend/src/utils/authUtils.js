@@ -8,12 +8,17 @@ export const hashPassword = async (password) => {
   return bcrypt.hash(password, salt);
 };
 
+// Compares a plain-text password to a hashed password
+export const comparePassword = async (plainPassword, hashedPassword) => {
+  return bcrypt.compare(plainPassword, hashedPassword);
+};
+
 // Generates a short-lived JWT to pass data between registration steps
 export const generateStepToken = (payload, expiresIn = "15m") => {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
 };
 
-// Generates a final, long-lived login token after successful registration
+// Generates a final, long-lived login token after successful registration or login
 export const generateLoginToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };

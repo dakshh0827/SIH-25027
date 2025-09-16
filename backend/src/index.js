@@ -2,20 +2,21 @@
 import express from "express";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
-// Load environment variables from .env file
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware to parse incoming JSON requests
+// ✅ THIS LINE IS ESSENTIAL
+// It parses incoming JSON requests and must come BEFORE your routes.
 app.use(express.json());
 
-// Main route handler
+// --- Routes ---
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 
-// Start the server
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

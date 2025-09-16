@@ -1,7 +1,9 @@
 // src/controllers/authController.js
 import { PrismaClient } from "@prisma/client";
+import { uploadToCloudinary } from "../config/upload.js";
 import {
   hashPassword,
+  comparePassword,
   generateStepToken,
   generateLoginToken,
 } from "../utils/authUtils.js";
@@ -29,14 +31,12 @@ export const registerStep1 = async (req, res) => {
     const hashedPassword = await hashPassword(password);
     const step1Token = generateStepToken({ fullName, email, hashedPassword });
 
-    res
-      .status(200)
-      .json({
-        message: "Step 1 complete. Proceed to the next step.",
-        step1Token,
-      });
+    res.status(200).json({
+      message: "Step 1 complete. Proceed to the next step.",
+      step1Token,
+    });
   } catch (error) {
-    console.error("Error in registerStep1:", error); // <-- LOG THE ERROR
+    console.error("Error in registerStep1:", error);
     res.status(500).json({ message: "An internal server error occurred" });
   }
 };
@@ -44,8 +44,16 @@ export const registerStep1 = async (req, res) => {
 // Step 2 (Admin Path): Handle Admin Details & Finalize
 export const registerAdmin = async (req, res) => {
   try {
-    const { nccrGovtId, idProofUrl, metamaskAddress } = req.body;
-    const { fullName, email, hashedPassword } = req.stepData; // Data from middleware
+    const { nccrGovtId, metamaskAddress } = req.body;
+    const { fullName, email, hashedPassword } = req.stepData;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "ID proof file is required" });
+    }
+
+    // Upload file to Cloudinary
+    const uploadResult = await uploadToCloudinary(req.file.buffer);
+    const idProofUrl = uploadResult.secure_url;
 
     const newUser = await prisma.user.create({
       data: {
@@ -54,22 +62,20 @@ export const registerAdmin = async (req, res) => {
         password: hashedPassword,
         role: "ADMIN",
         adminProfile: {
-          create: { nccrGovtId, idProofUrl, metamaskAddress },
+          create: { nccrGovtId, metamaskAddress, idProofUrl },
         },
       },
       include: { adminProfile: true },
     });
 
     const loginToken = generateLoginToken(newUser.id);
-    res
-      .status(201)
-      .json({
-        message: "Admin registration successful!",
-        user: newUser,
-        loginToken,
-      });
+    res.status(201).json({
+      message: "Admin registration successful!",
+      user: newUser,
+      loginToken,
+    });
   } catch (error) {
-    console.error("Error in registerAdmin:", error); // <-- LOG THE ERROR
+    console.error("Error in registerAdmin:", error);
     res.status(500).json({ message: "Admin registration failed" });
   }
 };
@@ -78,7 +84,15 @@ export const registerAdmin = async (req, res) => {
 export const registerStep3 = async (req, res) => {
   try {
     const { type, ...details } = req.body;
-    const { fullName, email, hashedPassword } = req.stepData; // Data from middleware
+    const { fullName, email, hashedPassword } = req.stepData;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Document upload is required" });
+    }
+
+    // Upload file to Cloudinary
+    const uploadResult = await uploadToCloudinary(req.file.buffer);
+    const documentUrl = uploadResult.secure_url;
 
     let newUser;
     if (type === "NGO") {
@@ -92,6 +106,7 @@ export const registerStep3 = async (req, res) => {
             create: {
               ...details,
               yearOfEstablishment: parseInt(details.yearOfEstablishment),
+              registrationCertificateUrl: documentUrl, // Save the URL
             },
           },
         },
@@ -103,7 +118,12 @@ export const registerStep3 = async (req, res) => {
           email,
           password: hashedPassword,
           role: "PANCHAYAT",
-          panchayatProfile: { create: details },
+          panchayatProfile: {
+            create: {
+              ...details,
+              authorizedRepresentativeIdProofUrl: documentUrl, // Save the URL
+            },
+          },
         },
       });
     } else {
@@ -117,7 +137,7 @@ export const registerStep3 = async (req, res) => {
       .status(200)
       .json({ message: "Step 3 complete. Proceed to final step.", step3Token });
   } catch (error) {
-    console.error("Error in registerStep3:", error); // <-- LOG THE ERROR
+    console.error("Error in registerStep3:", error);
     res.status(500).json({ message: "An internal server error occurred" });
   }
 };
@@ -126,7 +146,7 @@ export const registerStep3 = async (req, res) => {
 export const registerCommon = async (req, res) => {
   try {
     const commonDetails = req.body;
-    const { userId } = req.stepData; // Data from middleware
+    const { userId } = req.stepData;
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -147,15 +167,56 @@ export const registerCommon = async (req, res) => {
     });
 
     const loginToken = generateLoginToken(updatedUser.id);
-    res
-      .status(201)
-      .json({
-        message: "Registration complete!",
-        user: updatedUser,
-        loginToken,
-      });
+    res.status(201).json({
+      message: "Registration complete!",
+      user: updatedUser,
+      loginToken,
+    });
   } catch (error) {
-    console.error("Error in registerCommon:", error); // <-- LOG THE ERROR
+    console.error("Error in registerCommon:", error);
     res.status(500).json({ message: "Final registration step failed" });
+  }
+};
+
+// Login User
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isPasswordCorrect = await comparePassword(password, user.password);
+
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const loginToken = generateLoginToken(user.id);
+
+    res.status(200).json({
+      message: "Login successful!",
+      loginToken,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: "An internal server error occurred" });
   }
 };

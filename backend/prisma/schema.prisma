@@ -21,24 +21,48 @@ enum Role {
 }
 
 // ===================================================================
-// CORE USER MODEL
+// CORE USER MODEL (Updated)
 // ===================================================================
 
 model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   email     String   @unique
   fullName  String
-  password  String // This will store the hashed password
+  password  String
   role      Role
+  isVerified Boolean  @default(false) // User's email verification status
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships to profile models (One-to-One)
+  // Relationships
   adminProfile    AdminProfile?
   ngoProfile      NgoProfile?
   panchayatProfile PanchayatProfile?
-  commonProfile   CommonProfile? // For NGO/Panchayat common details
+  commonProfile   CommonProfile?
+  otpCodes        OTPCode[] // Relation to OTP codes
+}
+
+// ===================================================================
+// NEW MODEL for OTP Codes
+// ===================================================================
+
+model OTPCode {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  code      String   // Hashed OTP code
+  type      String   // e.g., 'verification', 'password_reset'
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to User model
+  user   User   @relation(fields: [email], references: [email], onDelete: Cascade)
+
+  @@index([email, type])
 }
 
 
@@ -50,15 +74,14 @@ model User {
 model AdminProfile {
   id                String @id @default(auto()) @map("_id") @db.ObjectId
   nccrGovtId        String @unique
-  idProofUrl        String // URL to the uploaded ID proof file
+  idProofUrl        String
   metamaskAddress   String @unique
 
-  // Relation to the main User model
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique @db.ObjectId
 }
 
-// Step 3 for NGOS
+// Step 3 for NGOS (Updated)
 model NgoProfile {
   id                        String @id @default(auto()) @map("_id") @db.ObjectId
   legalName                 String
@@ -66,39 +89,28 @@ model NgoProfile {
   registrationType          String
   registrationCertificateUrl String
   panNumber                 String @unique
-  panUrl                    String
-  bankAccountProofUrl       String
-  authorizedSignatoryName   String
-  authorizedSignatoryRole   String
-  authorizedSignatoryIdProofUrl String
   yearOfEstablishment       Int
 
-  // Relation to the main User model
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique @db.ObjectId
 }
 
-// Step 3 for PANCHAYATS
+// Step 3 for PANCHAYATS (Updated)
 model PanchayatProfile {
   id                         String @id @default(auto()) @map("_id") @db.ObjectId
   panchayatCode              String @unique
   panchayatName              String
-  sarpanchName               String // Sarpanch / Authorized Representative Name
+  sarpanchName               String
   authorizedRepresentativeIdProofUrl String
-  officialLetterUrl          String
-  panchayatSealUrl           String
 
-  // Relation to the main User model
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique @db.ObjectId
 }
-
 
 // ===================================================================
 // COMMON PROFILE MODEL
 // ===================================================================
 
-// Step 4 for NGO / PANCHAYAT
 model CommonProfile {
   id                  String @id @default(auto()) @map("_id") @db.ObjectId
   displayName         String
@@ -109,14 +121,11 @@ model CommonProfile {
   primaryContactRole  String
   primaryContactPhone String
   primaryContactEmail String
-  // For Geo Coordinates, storing as a simple string or two Floats is an option.
-  // Using two floats is generally better for querying.
   latitude            Float
   longitude           Float
   blockchainWallet    String @unique
   consent             Boolean @default(false)
 
-  // Relation to the main User model
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique @db.ObjectId
 }
