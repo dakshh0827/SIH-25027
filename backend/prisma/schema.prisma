@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  FPO
+  MANUFACTURER
+  LABORATORY
+}
+
+model User {
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  fullName            String
+  email               String               @unique
+  password            String
+  role                Role
+  adminProfile        AdminProfile?
+  fpoProfile          FpoProfile?
+  manufacturerProfile ManufacturerProfile?
+  laboratoryProfile   LaboratoryProfile?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model AdminProfile {
+  id              String @id @default(auto()) @map("_id") @db.ObjectId
+  adminId         String @unique
+  idProofUrl      String
+  metamaskAddress String @unique
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String @unique @db.ObjectId
+}
+
+model FpoProfile {
+  id                       String @id @default(auto()) @map("_id") @db.ObjectId
+  fpoName                  String
+  registrationNumber       String @unique
+  pan                      String @unique
+  gstin                    String @unique
+  registeredAddress        String
+  authorizedRepresentative String
+  user                     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                   String @unique @db.ObjectId
+}
+
+model ManufacturerProfile {
+  id                       String @id @default(auto()) @map("_id") @db.ObjectId
+  manufacturerName         String
+  ayushLicenseNumber       String @unique
+  registrationNumber       String @unique
+  pan                      String @unique
+  gstin                    String @unique
+  registeredAddress        String
+  authorizedRepresentative String
+  user                     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                   String @unique @db.ObjectId
+}
+
+model LaboratoryProfile {
+  id                       String @id @default(auto()) @map("_id") @db.ObjectId
+  labName                  String
+  nablAccreditationNumber  String @unique
+  scopeOfNablAccreditation String
+  pan                      String @unique
+  gstin                    String @unique
+  registeredAddress        String
+  authorizedRepresentative String
+  user                     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                   String @unique @db.ObjectId
+}
