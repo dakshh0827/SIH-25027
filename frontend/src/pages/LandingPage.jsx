@@ -1,368 +1,352 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Waves, CheckCircle, Clock, AlertCircle, ArrowDown, Leaf, Shield, BarChart3 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import React, { useState, useRef, useEffect } from 'react';
+import { Waves, Search, Leaf, Factory, TestTubeDiagonal, Tractor, Eye } from 'lucide-react';
 
-gsap.registerPlugin(ScrollTrigger);
-
-// Mock data for demonstration (unchanged from your code)
-const mockProjects = [
-  {
-    id: 1,
-    name: "Sundarbans Mangrove Restoration",
-    location: "West Bengal, India",
-    area: 150.5,
-    carbonCredits: 12500,
-    status: "verified",
-    description: "Large-scale mangrove restoration project in the Sundarbans delta region."
-  },
-  {
-    id: 2,
-    name: "Kerala Backwater Conservation",
-    location: "Kerala, India",
-    area: 89.2,
-    carbonCredits: 7800,
-    status: "pending",
-    description: "Coastal ecosystem restoration focusing on backwater mangrove systems."
-  },
-  {
-    id: 3,
-    name: "Andaman Blue Carbon Initiative",
-    location: "Andaman & Nicobar, India",
-    area: 203.7,
-    carbonCredits: 18200,
-    status: "verified",
-    description: "Comprehensive blue carbon project covering multiple island ecosystems."
-  }
-];
-
-const ProjectCard = ({ project, index }) => {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'verified': return 'text-emerald-300 bg-emerald-700/30 border-emerald-500/30 group-hover:bg-emerald-300 group-hover:text-emerald-900';
-      case 'pending': return 'text-amber-300 bg-amber-700/30 border-amber-500/30 group-hover:bg-amber-300 group-hover:text-amber-900';
-      default: return 'text-slate-300 bg-slate-700/30 border-slate-500/30 group-hover:bg-slate-300 group-hover:text-slate-900';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'verified': return <CheckCircle className="w-4 h-4" />;
-      case 'pending': return <Clock className="w-4 h-4" />;
-      default: return <AlertCircle className="w-4 h-4" />;
-    }
-  };
-
-  return (
-    <div className="project-card group bg-slate-900/40 border border-transparent hover:bg-slate-800 hover:border-blue-400 transition-all duration-300 cursor-pointer active:scale-[0.98]">
-      <div className="p-8">
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-white group-hover:text-white mb-2 transition-colors">
-              {project.name}
-            </h3>
-            <p className="text-slate-400 group-hover:text-slate-300 text-sm mb-3 transition-colors">{project.location}</p>
-            <p className="text-slate-300 group-hover:text-slate-400 text-sm leading-relaxed transition-colors">{project.description}</p>
-          </div>
-          <div className={`flex items-center gap-2 px-3 py-1 text-xs font-medium border transition-all ${getStatusColor(project.status)}`}>
-            {getStatusIcon(project.status)}
-            {project.status}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-700/50 group-hover:border-slate-600/50 transition-colors">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-emerald-400 group-hover:text-emerald-300 mb-1 transition-colors">
-              {project.carbonCredits.toLocaleString()}
-            </div>
-            <div className="text-xs text-slate-400 group-hover:text-slate-500 uppercase tracking-wider transition-colors">Carbon Credits</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-400 group-hover:text-blue-300 mb-1 transition-colors">
-              {project.area} ha
-            </div>
-            <div className="text-xs text-slate-400 group-hover:text-slate-500 uppercase tracking-wider transition-colors">Restored Area</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+// Mock data for a single product's provenance
+const mockProvenanceData = {
+    batchId: "VEDA-A-12345",
+    productName: "Ashwagandha Capsules",
+    status: "Verified on Blockchain",
+    events: [
+        {
+            id: 1,
+            type: "CollectionEvent",
+            title: "Herb Harvested",
+            date: "2023-09-15",
+            details: "Ashwagandha (Withania somnifera) harvested by farmer collective in Jaipur, Rajasthan.",
+            location: "26.9124° N, 75.7873° E",
+            actor: "Farmer Collective FPO",
+            icon: Tractor,
+        },
+        {
+            id: 2,
+            type: "ProcessingStep",
+            title: "Herbs Processed",
+            date: "2023-09-20",
+            details: "Drying and grinding of herbs at VedaHerbs processing facility.",
+            location: "28.7041° N, 77.1025° E",
+            actor: "VedaHerbs Ayurvedic Pvt. Ltd.",
+            icon: Factory,
+        },
+        {
+            id: 3,
+            type: "QualityTest",
+            title: "Lab Test Performed",
+            date: "2023-09-25",
+            details: "Tested for heavy metals and microbial limits. Report #NABL-TC-1234.",
+            location: "28.7041° N, 77.1025° E",
+            actor: "Herbal Quality Labs Pvt. Ltd.",
+            icon: TestTubeDiagonal,
+        },
+        {
+            id: 4,
+            type: "FinalProduct",
+            title: "Product Packaged",
+            date: "2023-09-30",
+            details: "Encapsulated and packaged with unique QR code for consumer traceability.",
+            location: "28.7041° N, 77.1025° E",
+            actor: "VedaHerbs Ayurvedic Pvt. Ltd.",
+            icon: Waves,
+        },
+    ],
 };
 
-const FeatureCard = ({ icon: Icon, title, description, delay }) => {
-  return (
-    <div className={`feature-card group bg-slate-900/40 border border-transparent p-6 hover:bg-slate-800 hover:border-blue-400 transition-all duration-300 cursor-pointer active:scale-[0.98]`}>
-      <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 border border-blue-400/20 mb-4 mx-auto group-hover:bg-blue-600/20 group-hover:border-blue-500/50 transition-colors">
-        <Icon className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
-      </div>
-      <h3 className="text-lg font-semibold text-white group-hover:text-white mb-3 text-center transition-colors">{title}</h3>
-      <p className="text-slate-400 group-hover:text-slate-400 text-sm leading-relaxed text-center transition-colors">{description}</p>
-    </div>
-  );
+// Mock data for most viewed products
+const mockMostViewedProducts = [
+    {
+        id: 1,
+        name: "Ashwagandha Capsules",
+        company: "VedaHerbs Ayurvedic Pvt. Ltd.",
+        views: 1245,
+        status: "Verified",
+    },
+    {
+        id: 2,
+        name: "Tulsi Tea Blend",
+        company: "Organic Wellness Co.",
+        views: 987,
+        status: "Verified",
+    },
+    {
+        id: 3,
+        name: "Brahmi Syrup",
+        company: "BrainBoost Pharma",
+        views: 752,
+        status: "Verified",
+    }
+];
+
+const ProductCard = ({ product }) => {
+    return (
+        <div className="bg-slate-900/40 border border-transparent p-6 space-y-4 transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
+            <div className="flex items-center justify-between">
+                <h4 className="text-xl font-bold text-white">{product.name}</h4>
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                    <Eye className="w-4 h-4" />
+                    <span>{product.views.toLocaleString()}</span>
+                </div>
+            </div>
+            <p className="text-sm text-slate-400">{product.company}</p>
+            <span className="inline-block bg-green-600/30 text-green-400 text-xs px-2 py-1 font-semibold">
+                {product.status}
+            </span>
+        </div>
+    );
 };
 
 const LandingPage = () => {
-  const [mounted, setMounted] = useState(false);
-  const heroRef = useRef(null);
-  const statsRef = useRef(null);
-  const projectsRef = useRef(null);
-  const featuresRef = useRef(null);
-  const titleRef = useRef(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [provenanceData, setProvenanceData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const heroRef = useRef(null);
+    const mostViewedRef = useRef(null);
+    const titleRef = useRef(null);
 
-  const projects = mockProjects;
-  const navigate = useNavigate();
+    const handleSearch = () => {
+        if (!searchTerm) return;
+        setLoading(true);
+        setProvenanceData(null);
 
-  useEffect(() => {
-    setMounted(true);
-    if (!mounted) return;
+        // Simulate an API call
+        setTimeout(() => {
+            if (searchTerm.toUpperCase() === mockProvenanceData.batchId) {
+                setProvenanceData(mockProvenanceData);
+            } else {
+                setProvenanceData(null);
+            }
+            setLoading(false);
+        }, 1500);
+    };
 
-    // Hero animations
-    const titleTimeline = gsap.timeline();
-    const titleWords = titleRef.current.querySelectorAll('h1 span');
+    const handleLogin = () => {
+        alert('Login button clicked!');
+    };
 
-    titleTimeline.from(titleWords, {
-      opacity: 0,
-      y: 50,
-      stagger: 0.15,
-      duration: 1,
-      ease: "power3.out"
-    })
-    .from(".hero-subtitle", {
-      opacity: 0,
-      y: 30,
-      duration: 1,
-      ease: "power3.out"
-    }, "-=0.7")
-    .from(".hero-icon", {
-      opacity: 0,
-      scale: 0.8,
-      duration: 0.8,
-      ease: "back.out(1.7)"
-    }, "-=0.5");
+    const handleSignup = () => {
+        alert('Signup button clicked!');
+    };
 
-    // Scroll animations
-    gsap.utils.toArray('.animated-section').forEach(section => {
-      gsap.from(section.children, {
-        opacity: 0,
-        y: 50,
-        stagger: 0.1,
-        duration: 0.8,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: section,
-          start: "top 85%",
-          toggleActions: "play none none none"
-        }
-      });
-    });
-
-    // Parallax effect for background
-    gsap.to(".bg-parallax", {
-      yPercent: 30,
-      ease: "none",
-      scrollTrigger: {
-        trigger: "body",
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
-      },
-    });
-
-  }, [mounted]);
-
-  const stats = {
-    totalProjects: projects.length,
-    verifiedProjects: projects.filter(p => p.status === 'verified').length,
-    totalCredits: projects.reduce((sum, p) => sum + p.carbonCredits, 0),
-    totalArea: projects.reduce((sum, p) => sum + p.area, 0)
-  };
-
-  const features = [
-    {
-      icon: Shield,
-      title: "Blockchain Verification",
-      description: "Immutable and transparent verification system powered by blockchain technology"
-    },
-    {
-      icon: BarChart3,
-      title: "Real-time Monitoring",
-      description: "Advanced IoT sensors and satellite imagery for continuous ecosystem monitoring"
-    },
-    {
-      icon: Leaf,
-      title: "Carbon Credit Generation",
-      description: "Automated carbon credit calculation and issuance based on verified data"
-    }
-  ];
-  
-  const handleLogin = () => {
-    navigate('/login');
-  };
-
-  const handleSignup = () => {
-    navigate('/signup');
-  };
-
-  return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-950">
-      {/* Background with Parallax */}
-      <div 
-        className="bg-parallax absolute top-0 left-0 w-full h-[150%] z-0"
-        style={{
-          backgroundImage: `url('/5.jpeg')`, 
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
-      />
-      
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 z-1 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/90" />
-
-      {/* Header with Navigation Buttons */}
-      <header className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-end items-center bg-slate-950/20 backdrop-blur-md border-b border-slate-800/50">
-        <div className="hidden">Logo/Title</div>
-        <div className="flex items-center gap-4">
-          <button 
-            className="px-5 py-2 border border-blue-400 text-blue-400 font-semibold transition-all duration-300 hover:bg-blue-800/30 hover:text-white active:scale-[0.98] cursor-pointer"
-            onClick={handleSignup}
-          >
-            Signup
-          </button>
-          <button 
-            className="px-5 py-2 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-800 hover:text-white active:scale-[0.98] cursor-pointer"
-            onClick={handleLogin}
-          >
-            Login
-          </button>
-        </div>
-      </header>
-      
-      {/* Content Wrapper */}
-      <div className="relative z-10">
-        {/* Hero Section */}
-        <div className="min-h-screen flex flex-col justify-center items-center px-6 text-center pt-24 md:pt-0">
-          <div className="max-w-6xl mx-auto space-y-8" ref={heroRef}>
-            <div className="hero-icon flex justify-center mb-8">
-              <div className="p-6 bg-blue-500/10 border-2 border-blue-400/20 backdrop-blur-sm">
-                <Waves className="h-20 w-20 text-blue-400" />
-              </div>
-            </div>
-            
-            <div ref={titleRef} className="space-y-4">
-              <h1 className="text-6xl md:text-8xl font-black tracking-tight text-white leading-none">
-                <span className="block">BLUE CARBON</span>
-                <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-                  REGISTRY
-                </span>
-              </h1>
-            </div>
-            
-            <div className="hero-subtitle space-y-6">
-              <p className="text-xl md:text-2xl text-slate-300 max-w-4xl mx-auto leading-relaxed font-light">
-                Next-generation blockchain-powered <span className="font-semibold text-blue-300">Monitoring, Reporting, and Verification</span> system for blue carbon ecosystems
-              </p>
-              <p className="text-lg text-slate-400 max-w-3xl mx-auto">
-                Transparent, immutable, and verifiable carbon credit generation from coastal ecosystem restoration
-              </p>
-            </div>
-          </div>
-          
-          <div className="scroll-indicator absolute bottom-8 flex flex-col items-center text-slate-400">
-            <span className="text-sm uppercase tracking-wider mb-2">Scroll to explore</span>
-            <ArrowDown className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* Features Section */}
-        <div className="max-w-7xl mx-auto px-6 py-20 animated-section" ref={featuresRef}>
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Why Choose Blue Carbon Registry</h2>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Advanced technology meets environmental conservation
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <FeatureCard
-                key={index}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.description}
-                delay={index * 0.1}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Stats Section */}
-        <div className="max-w-7xl mx-auto px-6 py-16 animated-section">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Impact Metrics</h2>
-            <p className="text-slate-400">Real-time data from our global network</p>
-          </div>
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-blue-400 group-hover:text-blue-300 mb-2 transition-colors">{stats.totalProjects}</div>
-              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Active Projects</div>
-            </div>
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-emerald-400 group-hover:text-emerald-300 mb-2 transition-colors">{stats.verifiedProjects}</div>
-              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Verified Projects</div>
-            </div>
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-green-400 group-hover:text-green-300 mb-2 transition-colors">{stats.totalCredits.toLocaleString()}</div>
-              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Carbon Credits</div>
-            </div>
-            <div className="stat-card group bg-slate-900/40 backdrop-blur-md border border-transparent p-8 text-center transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
-              <div className="text-4xl font-bold text-teal-400 group-hover:text-teal-300 mb-2 transition-colors">{stats.totalArea.toFixed(1)}</div>
-              <div className="text-slate-300 group-hover:text-slate-500 uppercase tracking-widest text-sm transition-colors">Hectares Restored</div>
-            </div>
-          </div>
-        </div>
+    useEffect(() => {
+        setMounted(true);
         
-        {/* Projects Section */}
-        <div className="max-w-7xl mx-auto px-6 py-20 animated-section">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Featured Projects</h2>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Verified blue carbon restoration initiatives transforming coastal ecosystems across India
-            </p>
-          </div>
-          <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8" ref={projectsRef}>
-            {projects.map((project, index) => (
-              <ProjectCard key={project.id} project={project} index={index} />
-            ))}
-          </div>
-        </div>
+        // Since we can't import GSAP in this environment, we'll use CSS animations
+        // and simulate the scroll effects with vanilla JavaScript
+        
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
 
-        {/* Call to Action */}
-        <div className="max-w-4xl mx-auto px-6 py-20 text-center animated-section">
-          <div className="bg-slate-900/40 backdrop-blur-md border border-transparent p-12 transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 group-hover:text-white transition-colors">
-              Ready to Make an Impact?
-            </h2>
-            <p className="text-slate-300 text-lg mb-8 leading-relaxed group-hover:text-slate-400 transition-colors">
-              Join the future of carbon credit verification and help restore our blue carbon ecosystems
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
-                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all duration-300 active:scale-[0.98]"
-              >
-                Start a Project
-              </button>
-              <button 
-                className="px-8 py-3 border border-slate-600 text-slate-300 hover:bg-blue-600 hover:border-blue-600 hover:text-white font-semibold transition-all duration-300 active:scale-[0.98]"
-              >
-                Learn More
-              </button>
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all animated sections
+        const animatedSections = document.querySelectorAll('.animated-section');
+        animatedSections.forEach((section) => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(50px)';
+            section.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
+            observer.observe(section);
+        });
+
+        // Hero animation
+        const heroElements = document.querySelectorAll('.hero-animate');
+        heroElements.forEach((el, index) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+            setTimeout(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            }, index * 200);
+        });
+
+        // Parallax effect
+        const handleScroll = () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelector('.bg-parallax');
+            if (parallax) {
+                parallax.style.transform = `translateY(${scrolled * 0.3}px)`;
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            observer.disconnect();
+        };
+    }, []);
+
+    return (
+        <div className="min-h-screen relative overflow-hidden bg-slate-950">
+            {/* Background with Parallax - Updated to match second code pattern */}
+            <div 
+                className="bg-parallax absolute top-0 left-0 w-full h-[150%] z-0"
+                style={{
+                    backgroundImage: `url('/5.jpeg')`, 
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundAttachment: 'fixed'
+                }}
+            />
+            
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 z-1 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/90" />
+
+            {/* Header with Navigation Buttons */}
+            <header className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center bg-slate-950/20 backdrop-blur-md border-b border-slate-800/50">
+                <div className="flex items-center gap-2">
+                    <Waves className="w-8 h-8 text-blue-400" />
+                    <span className="font-bold text-xl text-white">AyurTrace</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button
+                        className="px-5 py-2 border border-blue-400 text-blue-400 font-semibold transition-all duration-300 hover:bg-blue-800/30 hover:text-white active:scale-[0.98] cursor-pointer"
+                        onClick={handleSignup}
+                    >
+                        Signup
+                    </button>
+                    <button
+                        className="px-5 py-2 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-800 hover:text-white active:scale-[0.98] cursor-pointer"
+                        onClick={handleLogin}
+                    >
+                        Login
+                    </button>
+                </div>
+            </header>
+
+            {/* Content Wrapper */}
+            <div className="relative z-10">
+                {/* Hero Section */}
+                <div className="min-h-screen flex flex-col justify-center items-center px-6 text-center pt-24 md:pt-0">
+                    <div className="max-w-6xl mx-auto space-y-8" ref={heroRef}>
+                        <div className="hero-animate flex justify-center mb-8">
+                            <div className="p-6 bg-emerald-500/10 border-2 border-emerald-400/20 backdrop-blur-sm">
+                                <Leaf className="h-20 w-20 text-emerald-400" />
+                            </div>
+                        </div>
+                        
+                        <div ref={titleRef} className="space-y-4">
+                            <h1 className="text-6xl md:text-8xl font-black tracking-tight text-white leading-none hero-animate">
+                                <span className="block">TRACE YOUR</span>
+                                <span className="block bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">HERBS</span>
+                            </h1>
+                        </div>
+                        
+                        <div className="hero-animate space-y-6">
+                            <p className="text-xl md:text-2xl text-slate-300 max-w-4xl mx-auto leading-relaxed font-light">
+                                Scan a QR code or enter a batch ID to view the full journey of your <span className="font-semibold text-emerald-300">Ayurvedic product</span>, from farm to shelf
+                            </p>
+                            <p className="text-lg text-slate-400 max-w-3xl mx-auto">
+                                Transparent, immutable, and verifiable supply chain tracking
+                            </p>
+                        </div>
+                        
+                        <div className="hero-animate mt-8 flex items-center max-w-lg mx-auto">
+                            <input
+                                type="text"
+                                placeholder="Enter Batch ID (try: VEDA-A-12345)..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="flex-1 px-6 py-4 bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 transition-colors duration-300 focus:outline-none focus:border-emerald-400 backdrop-blur-sm"
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+                            >
+                                <Search className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Provenance Results Section (Dynamic) */}
+                <div className="max-w-7xl mx-auto px-6 py-12">
+                    {loading && (
+                        <div className="text-center text-slate-400 py-12">
+                            <div className="animate-spin w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                            <p>Searching blockchain records...</p>
+                        </div>
+                    )}
+                    {!loading && provenanceData && (
+                        <div className="animated-section bg-slate-900/40 backdrop-blur-md border border-transparent p-8 space-y-8 transition-all duration-300 hover:bg-slate-800 hover:border-emerald-400">
+                            <h2 className="text-3xl font-bold text-white text-center">
+                                Provenance Record: <span className="text-emerald-400">{provenanceData.batchId}</span>
+                            </h2>
+                            <div className="relative border-l-2 border-slate-700 ml-4 pl-8 space-y-12">
+                                {/* Timeline */}
+                                {provenanceData.events.map((event, index) => (
+                                    <div key={event.id} className="relative timeline-event">
+                                        <div className="absolute -left-12 top-0 flex items-center justify-center w-10 h-10 bg-slate-800 border-2 border-emerald-400 text-emerald-400 backdrop-blur-sm rounded-full">
+                                            <event.icon className="w-5 h-5" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h3 className="text-lg font-semibold text-white">{event.title}</h3>
+                                            <p className="text-sm text-slate-400">Date: {event.date}</p>
+                                            <p className="text-sm text-slate-400">Actor: {event.actor}</p>
+                                            <p className="text-sm text-slate-300">{event.details}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {!loading && !provenanceData && searchTerm && (
+                        <div className="text-center text-red-400 mt-8 py-12">
+                            <p className="text-lg">No matching record found for that batch ID.</p>
+                            <p className="text-sm text-slate-500 mt-2">Try: VEDA-A-12345</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Most Viewed Products Section */}
+                <div className="max-w-7xl mx-auto px-6 py-20 animated-section" ref={mostViewedRef}>
+                    <div className="text-center mb-16">
+                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Most Viewed Products</h2>
+                        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+                            See what other customers are tracing to ensure quality and authenticity
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-8">
+                        {mockMostViewedProducts.map(product => (
+                            <ProductCard key={product.id} product={product} />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Call to Action */}
+                <div className="max-w-4xl mx-auto px-6 py-20 text-center animated-section">
+                    <div className="bg-slate-900/40 backdrop-blur-md border border-transparent p-12 transition-all duration-300 hover:bg-slate-800 hover:border-emerald-400 active:scale-[0.98]">
+                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                            Ready to Make an Impact?
+                        </h2>
+                        <p className="text-slate-300 text-lg mb-8 leading-relaxed">
+                            Join the future of supply chain transparency and help build trust in Ayurvedic medicine
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button
+                                className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+                            >
+                                Start a Project
+                            </button>
+                            <button
+                                className="px-8 py-3 border border-slate-600 text-slate-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+                            >
+                                Learn More
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default LandingPage;
