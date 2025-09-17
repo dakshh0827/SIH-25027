@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ArrowRight, ChevronLeft, Tractor, Factory, TestTubeDiagonal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import toast from 'react-hot-toast';
 
 // Zod schema for Farmer details
 const farmerSchema = z.object({
@@ -43,15 +44,13 @@ const OrganizationDetailsStep = ({
   onBack,
 }) => {
   const [orgType, setOrgType] = useState(formData.organizationType || "farmer");
-
   const schemaMap = {
     farmer: farmerSchema,
     manufacturer: manufacturerSchema,
     lab: labSchema,
   };
-
+  
   const currentSchema = schemaMap[orgType];
-
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     resolver: zodResolver(currentSchema),
   });
@@ -60,9 +59,71 @@ const OrganizationDetailsStep = ({
     reset();
   }, [orgType, reset]);
 
+  // Show validation error toasts
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0]?.message;
+      if (firstError) {
+        toast.error(firstError, {
+          duration: 3000,
+        });
+      }
+    }
+  }, [errors]);
+
+  const handleOrgTypeChange = (type) => {
+    const typeNames = {
+      'farmer': 'Farmer/FPO',
+      'manufacturer': 'Manufacturer',
+      'lab': 'Laboratory'
+    };
+    
+    setOrgType(type);
+    toast.success(`Switched to ${typeNames[type]} form`, {
+      duration: 2000,
+    });
+  };
+
   const onSubmit = (data) => {
-    // This is the key change: we now set the 'role' based on the submitted form type
-    onNext({ ...formData, ...data, role: orgType });
+    // Create a loading toast
+    const loadingToast = toast.loading('Completing your signup...', {
+      position: 'top-right',
+    });
+
+    try {
+      // Simulate form processing delay
+      setTimeout(() => {
+        const orgNames = {
+          'farmer': 'Farmer/FPO',
+          'manufacturer': 'Manufacturer', 
+          'lab': 'Laboratory'
+        };
+
+        toast.dismiss(loadingToast);
+        toast.success(`${orgNames[orgType]} registration completed successfully!`, {
+          duration: 4000,
+          position: 'top-right',
+        });
+        
+        // This is the key change: we now set the 'role' based on the submitted form type
+        onNext({ ...formData, ...data, role: orgType });
+      }, 1500);
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error('Registration failed. Please try again.', {
+        duration: 4000,
+        position: 'top-right',
+      });
+    }
+  };
+
+  const handleBack = () => {
+    toast.loading('Going back to previous step...', {
+      duration: 1000,
+    });
+    setTimeout(() => {
+      onBack();
+    }, 500);
   };
 
   const renderForm = () => {
@@ -79,7 +140,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="fpoName"
                 {...register("fpoName")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.fpoName && <p className="mt-1 text-sm text-red-400">{errors.fpoName.message}</p>}
             </div>
@@ -92,7 +154,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="regNumber"
                 {...register("regNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.regNumber && <p className="mt-1 text-sm text-red-400">{errors.regNumber.message}</p>}
             </div>
@@ -105,7 +168,9 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="pan"
                 {...register("pan")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
+                placeholder="e.g., ABCDE1234F"
               />
               {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
             </div>
@@ -118,7 +183,9 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="gstin"
                 {...register("gstin")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
+                placeholder="e.g., 22ABCDE1234F1Z5"
               />
               {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
             </div>
@@ -131,7 +198,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="registeredAddress"
                 {...register("registeredAddress")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
             </div>
@@ -144,7 +212,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="authorizedRepresentative"
                 {...register("authorizedRepresentative")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
             </div>
@@ -162,7 +231,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="manufacturerName"
                 {...register("manufacturerName")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.manufacturerName && <p className="mt-1 text-sm text-red-400">{errors.manufacturerName.message}</p>}
             </div>
@@ -175,7 +245,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="ayushLicenseNumber"
                 {...register("ayushLicenseNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.ayushLicenseNumber && <p className="mt-1 text-sm text-red-400">{errors.ayushLicenseNumber.message}</p>}
             </div>
@@ -188,7 +259,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="regNumber"
                 {...register("regNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.regNumber && <p className="mt-1 text-sm text-red-400">{errors.regNumber.message}</p>}
             </div>
@@ -201,7 +273,9 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="pan"
                 {...register("pan")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
+                placeholder="e.g., ABCDE1234F"
               />
               {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
             </div>
@@ -214,7 +288,9 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="gstin"
                 {...register("gstin")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
+                placeholder="e.g., 22ABCDE1234F1Z5"
               />
               {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
             </div>
@@ -227,7 +303,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="registeredAddress"
                 {...register("registeredAddress")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
             </div>
@@ -240,7 +317,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="authorizedRepresentative"
                 {...register("authorizedRepresentative")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
             </div>
@@ -258,7 +336,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="labName"
                 {...register("labName")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.labName && <p className="mt-1 text-sm text-red-400">{errors.labName.message}</p>}
             </div>
@@ -271,7 +350,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="nablAccreditationNumber"
                 {...register("nablAccreditationNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.nablAccreditationNumber && <p className="mt-1 text-sm text-red-400">{errors.nablAccreditationNumber.message}</p>}
             </div>
@@ -284,7 +364,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="scopeOfNablAccreditation"
                 {...register("scopeOfNablAccreditation")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.scopeOfNablAccreditation && <p className="mt-1 text-sm text-red-400">{errors.scopeOfNablAccreditation.message}</p>}
             </div>
@@ -297,7 +378,9 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="pan"
                 {...register("pan")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
+                placeholder="e.g., ABCDE1234F"
               />
               {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
             </div>
@@ -310,7 +393,9 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="gstin"
                 {...register("gstin")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
+                placeholder="e.g., 22ABCDE1234F1Z5"
               />
               {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
             </div>
@@ -323,7 +408,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="registeredAddress"
                 {...register("registeredAddress")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
             </div>
@@ -336,7 +422,8 @@ const OrganizationDetailsStep = ({
                 type="text"
                 id="authorizedRepresentative"
                 {...register("authorizedRepresentative")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+                onFocus={() => toast.dismiss()}
               />
               {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
             </div>
@@ -356,7 +443,6 @@ const OrganizationDetailsStep = ({
         Provide the following details for verification as a community
         organization.
       </p>
-
       {/* Sliding Toggle Bar */}
       <div className="relative flex w-full h-20 bg-slate-700/50 border border-slate-600">
         <motion.div
@@ -369,7 +455,7 @@ const OrganizationDetailsStep = ({
         />
         <button
           type="button"
-          onClick={() => setOrgType("farmer")}
+          onClick={() => handleOrgTypeChange("farmer")}
           className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
             orgType === "farmer" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
@@ -379,7 +465,7 @@ const OrganizationDetailsStep = ({
         </button>
         <button
           type="button"
-          onClick={() => setOrgType("manufacturer")}
+          onClick={() => handleOrgTypeChange("manufacturer")}
           className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
             orgType === "manufacturer" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
@@ -389,7 +475,7 @@ const OrganizationDetailsStep = ({
         </button>
         <button
           type="button"
-          onClick={() => setOrgType("lab")}
+          onClick={() => handleOrgTypeChange("lab")}
           className={`relative z-10 w-1/3 flex flex-col items-center justify-center transition-all duration-300 ${
             orgType === "lab" ? "text-white" : "text-slate-300 hover:text-white"
           }`}
@@ -398,7 +484,6 @@ const OrganizationDetailsStep = ({
           <span className="font-medium">Laboratory</span>
         </button>
       </div>
-
       {/* Animated Form Section */}
       <AnimatePresence mode="wait">
         <motion.form
@@ -411,18 +496,17 @@ const OrganizationDetailsStep = ({
           className="space-y-6"
         >
           {renderForm()}
-
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={onBack}
-              className="flex-1 flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
+              onClick={handleBack}
+              className="flex-1 flex items-center justify-center px-4 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white active:scale-[0.98]"
             >
               <ChevronLeft className="h-4 w-4 mr-2" /> Back
             </button>
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center px-4 py-3 border border-[#10b981] bg-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98]"
             >
               Complete Signup <ArrowRight className="h-4 w-4 ml-2" />
             </button>

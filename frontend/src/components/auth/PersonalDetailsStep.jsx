@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 // Zod schema for validation
 const personalDetailsSchema = z.object({
@@ -24,12 +25,41 @@ const PersonalDetailsStep = ({ onNext }) => {
   });
 
   const onSubmit = (data) => {
-    onNext(data);
+    try {
+      // Show success message for step completion
+      toast.success('Personal details saved successfully!', {
+        duration: 2000,
+        position: 'top-right',
+      });
+      onNext(data);
+    } catch (error) {
+      toast.error('Failed to save personal details. Please try again.', {
+        duration: 4000,
+        position: 'top-right',
+      });
+    }
   };
 
   const handleLoginRedirect = () => {
-    navigate('/login');
+    toast.loading('Redirecting to login...', {
+      duration: 1000,
+    });
+    setTimeout(() => {
+      navigate('/login');
+    }, 1000);
   };
+
+  // Show validation error toasts
+  React.useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0]?.message;
+      if (firstError) {
+        toast.error(firstError, {
+          duration: 3000,
+        });
+      }
+    }
+  }, [errors]);
 
   return (
     <div className="space-y-6">
@@ -42,7 +72,8 @@ const PersonalDetailsStep = ({ onNext }) => {
             type="text"
             id="name"
             {...register("name")}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+            onFocus={() => toast.dismiss()} // Dismiss any existing toasts on focus
           />
           {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>}
         </div>
@@ -54,7 +85,8 @@ const PersonalDetailsStep = ({ onNext }) => {
             type="email"
             id="email"
             {...register("email")}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+            onFocus={() => toast.dismiss()}
           />
           {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
         </div>
@@ -66,7 +98,8 @@ const PersonalDetailsStep = ({ onNext }) => {
             type="password"
             id="password"
             {...register("password")}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+            onFocus={() => toast.dismiss()}
           />
           {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
         </div>
@@ -78,7 +111,8 @@ const PersonalDetailsStep = ({ onNext }) => {
             type="password"
             id="confirmPassword"
             {...register("confirmPassword")}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
+            onFocus={() => toast.dismiss()}
           />
           {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword.message}</p>}
         </div>
@@ -86,7 +120,7 @@ const PersonalDetailsStep = ({ onNext }) => {
         {/* Next Step Button */}
         <button
           type="submit"
-          className="w-full flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
+          className="w-full flex items-center justify-center px-4 py-3 border border-[#34d399] bg-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98]"
         >
           Next Step <ArrowRight className="h-4 w-4 ml-2" />
         </button>
@@ -96,7 +130,7 @@ const PersonalDetailsStep = ({ onNext }) => {
         Already have an account?{' '}
         <button
           onClick={handleLoginRedirect}
-          className="text-blue-400 hover:text-blue-300 font-medium"
+          className="text-[#34d399] hover:text-[#10b981] font-medium transition-colors duration-300"
         >
           Login
         </button>
