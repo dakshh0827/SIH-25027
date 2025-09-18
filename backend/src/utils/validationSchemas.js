@@ -10,7 +10,7 @@ const baseUserSchema = z.object({
 
 // Schema for Admin registration
 const adminSchema = baseUserSchema.extend({
-  role: z.literal("ADMIN"),
+  role: z.literal("admin"),
   adminId: z.string().min(1, "Admin ID is required."),
   metamaskAddress: z
     .string()
@@ -20,7 +20,7 @@ const adminSchema = baseUserSchema.extend({
 
 // Schema for FPO registration
 const fpoSchema = baseUserSchema.extend({
-  role: z.literal("FPO"),
+  role: z.literal("farmer"),
   fpoName: z.string().min(1, "FPO Name is required."),
   registrationNumber: z.string().min(1, "Registration number is required."),
   pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format."),
@@ -38,7 +38,7 @@ const fpoSchema = baseUserSchema.extend({
 
 // Schema for Manufacturer registration
 const manufacturerSchema = baseUserSchema.extend({
-  role: z.literal("MANUFACTURER"),
+  role: z.literal("manufacturer"),
   manufacturerName: z.string().min(1, "Manufacturer name is required."),
   ayushLicenseNumber: z.string().min(1, "AYUSH License number is required."),
   registrationNumber: z.string().min(1, "Registration number is required."),
@@ -57,7 +57,7 @@ const manufacturerSchema = baseUserSchema.extend({
 
 // Schema for Laboratory registration
 const laboratorySchema = baseUserSchema.extend({
-  role: z.literal("LABORATORY"),
+  role: z.literal("lab"),
   labName: z.string().min(1, "Lab name is required."),
   nablAccreditationNumber: z
     .string()
@@ -88,4 +88,45 @@ export const registerSchema = z.discriminatedUnion("role", [
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
   password: z.string().min(1, "Password cannot be empty."),
+});
+
+export const harvestSchema = z.object({
+  identifier: z.string().min(1, "Identifier is required."),
+  herbSpecies: z.string().min(1, "Herb species is required."),
+  harvestWeightKg: z
+    .string()
+    .transform(Number)
+    .refine((n) => n > 0, "Harvest weight must be a positive number."),
+  harvestSeason: z.string().min(1, "Harvest season is required."),
+  location: z.string().min(1, "Location is required."),
+  notes: z.string().optional(),
+  // For form-data, tags might come as a single string or multiple. We handle both.
+  regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
+// Schema for creating a new Manufacturing Report
+export const manufacturingReportSchema = z.object({
+  identifier: z.string().min(1, "Identifier is required."),
+  batchId: z.string().min(1, "Batch ID is required."),
+  herbUsed: z.string().min(1, "Herb used is required."),
+  quantityUsedKg: z
+    .string()
+    .transform(Number)
+    .refine((n) => n > 0, "Quantity used must be a positive number."),
+  processingSteps: z
+    .string()
+    .min(10, "Processing steps must be at least 10 characters long."),
+  expiryDate: z.string().datetime().optional().nullable(), // expecting ISO date string e.g. "2025-12-31T00:00:00.000Z"
+  notes: z.string().optional(),
+  regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
+// Schema for creating a new Lab Report
+export const labReportSchema = z.object({
+  identifier: z.string().min(1, "Identifier is required."),
+  batchId: z.string().min(1, "Batch ID of the product to test is required."),
+  testType: z.string().min(1, "Test type is required."),
+  testResult: z.string().min(1, "Test result is required."),
+  notes: z.string().optional(),
+  regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
 });

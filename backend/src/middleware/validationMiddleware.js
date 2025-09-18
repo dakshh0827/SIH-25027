@@ -1,29 +1,19 @@
-// middleware/validationMiddleware.js
+// middleware/validationMiddleware.js (DEBUG VERSION)
 import { ZodError } from "zod";
 
 export const validate = (schema) => (req, res, next) => {
-  try {
-    schema.parse(req.body);
-    next();
-  } catch (e) {
-    // --- DEBUGGING LINE ---
-    // This will print the exact error object to your terminal
-    console.log("--- VALIDATION MIDDLEWARE ERROR ---", e);
-    // ----------------------
+  // Use safeParse to prevent crashing the server
+  const result = schema.safeParse(req.body);
 
-    // Check if the error is a Zod validation error
-    if (e instanceof ZodError) {
-      const errors = e.errors.map((err) => ({
-        field: err.path.join("."),
-        message: err.message,
-      }));
-      // If it is, send a 400 Bad Request with the detailed errors
-      return res.status(400).json({ errors });
-    }
-
-    // If it's a different kind of error, send a generic 500 error
-    return res
-      .status(500)
-      .json({ message: "An unexpected error occurred during validation." });
+  if (!result.success) {
+    // If validation fails, send back a detailed error AND the body we received
+    return res.status(400).json({
+      message: "Zod validation failed.",
+      zod_errors: result.error.errors,
+      body_received: req.body, // This will show us what the server got
+    });
   }
+
+  // If validation is successful, continue to the controller
+  next();
 };

@@ -5,7 +5,7 @@ import { protect, authorize } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // Admin Route (existing)
-router.get("/admin", protect, authorize("ADMIN"), (req, res) => {
+router.get("/admin", protect, authorize("admin"), (req, res) => {
   res.json({
     message: `Welcome Admin ${req.user.fullName}!`,
     data: "This is your secret admin dashboard data.",
@@ -13,7 +13,7 @@ router.get("/admin", protect, authorize("ADMIN"), (req, res) => {
 });
 
 // FPO Route (existing)
-router.get("/fpo", protect, authorize("FPO"), (req, res) => {
+router.get("/fpo", protect, authorize("farmer"), (req, res) => {
   res.json({
     message: `Welcome FPO member ${req.user.fullName}!`,
     data: "Here is your FPO-specific information.",
@@ -23,7 +23,7 @@ router.get("/fpo", protect, authorize("FPO"), (req, res) => {
 // --- Add these new routes ---
 
 // Manufacturer Route (new)
-router.get("/manufacturer", protect, authorize("MANUFACTURER"), (req, res) => {
+router.get("/manufacturer", protect, authorize("manufacturer"), (req, res) => {
   res.json({
     message: `Welcome Manufacturer ${req.user.fullName}!`,
     data: "Here is your manufacturer dashboard content.",
@@ -31,7 +31,7 @@ router.get("/manufacturer", protect, authorize("MANUFACTURER"), (req, res) => {
 });
 
 // Laboratory Route (new)
-router.get("/laboratory", protect, authorize("LABORATORY"), (req, res) => {
+router.get("/laboratory", protect, authorize("lab"), (req, res) => {
   res.json({
     message: `Welcome Laboratory staff ${req.user.fullName}!`,
     data: "Access to laboratory testing panels granted.",

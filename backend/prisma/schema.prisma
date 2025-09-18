@@ -9,7 +9,7 @@ datasource db {
 
 enum Role {
   admin
-  farmer
+  farmer // Changed from FPO
   manufacturer
   lab
 }
@@ -21,7 +21,7 @@ model User {
   password            String
   role                Role
   adminProfile        AdminProfile?
-  fpoProfile          FpoProfile?
+  farmerProfile       FarmerProfile? // Changed from fpoProfile
   manufacturerProfile ManufacturerProfile?
   laboratoryProfile   LaboratoryProfile?
   createdAt           DateTime             @default(now())
@@ -29,48 +29,120 @@ model User {
 }
 
 model AdminProfile {
-  id              String @id @default(auto()) @map("_id") @db.ObjectId
-  adminId         String @unique
+  // ... (no changes in this model)
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  adminId         String   @unique
   idProofUrl      String
-  metamaskAddress String @unique
-  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId          String @unique @db.ObjectId
+  metamaskAddress String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String   @unique @db.ObjectId
 }
 
-model FpoProfile {
-  id                       String @id @default(auto()) @map("_id") @db.ObjectId
+// Renamed from FpoProfile to FarmerProfile for consistency
+model FarmerProfile {
+  id                       String    @id @default(auto()) @map("_id") @db.ObjectId
   fpoName                  String
-  registrationNumber       String @unique
-  pan                      String @unique
-  gstin                    String @unique
+  registrationNumber       String    @unique
+  pan                      String    @unique
+  gstin                    String    @unique
   registeredAddress        String
   authorizedRepresentative String
-  user                     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                   String @unique @db.ObjectId
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                   String    @unique @db.ObjectId
+  harvests                 Harvest[]
 }
 
 model ManufacturerProfile {
-  id                       String @id @default(auto()) @map("_id") @db.ObjectId
+  // ... (no changes in this model, just adding the reports relation)
+  id                       String                @id @default(auto()) @map("_id") @db.ObjectId
   manufacturerName         String
-  ayushLicenseNumber       String @unique
-  registrationNumber       String @unique
-  pan                      String @unique
-  gstin                    String @unique
+  ayushLicenseNumber       String                @unique
+  registrationNumber       String                @unique
+  pan                      String                @unique
+  gstin                    String                @unique
   registeredAddress        String
   authorizedRepresentative String
-  user                     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                   String @unique @db.ObjectId
+  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                   String                @unique @db.ObjectId
+  reports                  ManufacturingReport[]
 }
 
 model LaboratoryProfile {
-  id                       String @id @default(auto()) @map("_id") @db.ObjectId
-  labName                  String
-  nablAccreditationNumber  String @unique
-  scopeOfNablAccreditation String
-  pan                      String @unique
-  gstin                    String @unique
-  registeredAddress        String
-  authorizedRepresentative String
-  user                     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                   String @unique @db.ObjectId
+    // ... (no changes in this model, just adding the reports relation)
+    id                         String      @id @default(auto()) @map("_id") @db.ObjectId
+    labName                    String
+    nablAccreditationNumber    String      @unique
+    scopeOfNablAccreditation   String
+    pan                        String      @unique
+    gstin                      String      @unique
+    registeredAddress          String
+    authorizedRepresentative   String
+    user                       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId                     String      @unique @db.ObjectId
+    reports                    LabReport[]
+}
+
+model Harvest {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier      String   @unique // FHIR-style unique identifier for traceability
+  herbSpecies     String
+  harvestWeightKg Float
+  harvestSeason   String
+  location        String
+  harvestProofUrl String
+  status          String   @default("completed") // FHIR-style status (planned, in-progress, completed)
+
+  submittedBy     FarmerProfile @relation(fields: [farmerProfileId], references: [id])
+  farmerProfileId String        @db.ObjectId
+
+  // FHIR-style metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  recordedAt      DateTime @default(now()) // event time vs DB create time
+  notes           String?  // free-text notes
+  regulatoryTags  String[] // e.g. ["OrganicCertified", "GMP"]
+}
+
+model ManufacturingReport {
+  id                      String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier              String   @unique // FHIR-style global reference
+  batchId                 String   @unique
+  herbUsed                String
+  quantityUsedKg          Float
+  processingSteps         String
+  status                  String   @default("in-progress") // e.g. draft, in-progress, completed, cancelled
+
+  createdBy               ManufacturerProfile @relation(fields: [manufacturerProfileId], references: [id])
+  manufacturerProfileId   String              @db.ObjectId
+  labReport               LabReport?
+
+  // FHIR-style metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  effectiveDate DateTime @default(now()) // When processing actually happened
+  expiryDate    DateTime? // If applicable for shelf life
+  notes         String?
+  regulatoryTags String[] // compliance tags, e.g. "AYUSH-GMP"
+}
+
+model LabReport {
+  id                      String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier              String   @unique // FHIR-style reference
+  testType                String
+  testResult              String
+  labReportFileUrl        String
+  status                  String   @default("final") // e.g. registered, preliminary, final, amended
+
+  createdBy               LaboratoryProfile @relation(fields: [laboratoryProfileId], references: [id])
+  laboratoryProfileId     String            @db.ObjectId
+  manufacturingReport     ManufacturingReport @relation(fields: [manufacturingReportId], references: [id])
+  manufacturingReportId   String              @unique @db.ObjectId
+
+  // FHIR-style metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  effectiveDate   DateTime @default(now()) // when test was performed
+  issuedDate      DateTime @default(now()) // when report was issued
+  notes           String?
+  regulatoryTags  String[] // e.g. ["NABL", "ISO-17025"]
 }
