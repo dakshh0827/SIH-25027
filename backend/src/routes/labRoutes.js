@@ -4,7 +4,10 @@ import { protect, authorize } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validationMiddleware.js";
 import upload from "../middleware/multerMiddleware.js";
 import { labReportSchema } from "../utils/validationSchemas.js";
-import { createLabReport } from "../controllers/labController.js";
+import {
+  createLabReport,
+  getLabHistory,
+} from "../controllers/labController.js";
 
 const router = express.Router();
 
@@ -16,5 +19,7 @@ router.post(
   validate(labReportSchema),
   createLabReport
 );
+
+router.get("/", protect, authorize("lab"), getLabHistory);
 
 export default router;

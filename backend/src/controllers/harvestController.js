@@ -75,3 +75,34 @@ export const createHarvest = async (req, res) => {
     });
   }
 };
+
+export const getHarvestHistory = async (req, res) => {
+  try {
+    // Find the farmer profile of the logged-in user
+    const farmerProfile = await prisma.farmerProfile.findUnique({
+      where: { userId: req.user.id },
+    });
+
+    if (!farmerProfile) {
+      return res
+        .status(403)
+        .json({ message: "Farmer profile not found for this user." });
+    }
+
+    // Find all harvests submitted by this farmer
+    const harvests = await prisma.harvest.findMany({
+      where: { farmerProfileId: farmerProfile.id },
+      orderBy: { createdAt: "desc" }, // Show the newest first
+    });
+
+    res.status(200).json(harvests);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        message: "Server error while fetching harvest history.",
+        error: error.message,
+      });
+  }
+};

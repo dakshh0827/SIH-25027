@@ -65,3 +65,35 @@ export const createManufacturingReport = async (req, res) => {
     });
   }
 };
+
+export const getManufacturingHistory = async (req, res) => {
+  try {
+    const manufacturerProfile = await prisma.manufacturerProfile.findUnique({
+      where: { userId: req.user.id },
+    });
+
+    if (!manufacturerProfile) {
+      return res
+        .status(403)
+        .json({ message: "Manufacturer profile not found for this user." });
+    }
+
+    const reports = await prisma.manufacturingReport.findMany({
+      where: { manufacturerProfileId: manufacturerProfile.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        labReport: true, // Also fetch the associated lab report
+      },
+    });
+
+    res.status(200).json(reports);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        message: "Server error while fetching manufacturing history.",
+        error: error.message,
+      });
+  }
+};

@@ -75,3 +75,35 @@ export const createLabReport = async (req, res) => {
     });
   }
 };
+
+export const getLabHistory = async (req, res) => {
+  try {
+    const laboratoryProfile = await prisma.laboratoryProfile.findUnique({
+      where: { userId: req.user.id },
+    });
+
+    if (!laboratoryProfile) {
+      return res
+        .status(403)
+        .json({ message: "Laboratory profile not found for this user." });
+    }
+
+    const reports = await prisma.labReport.findMany({
+      where: { laboratoryProfileId: laboratoryProfile.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        manufacturingReport: true, // Also fetch the associated manufacturing report
+      },
+    });
+
+    res.status(200).json(reports);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        message: "Server error while fetching lab history.",
+        error: error.message,
+      });
+  }
+};
