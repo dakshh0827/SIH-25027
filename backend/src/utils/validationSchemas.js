@@ -1,6 +1,10 @@
 // utils/validationSchemas.js
 import { z } from "zod";
 
+export const checkEmailSchema = z.object({
+  email: z.string().email("Invalid email address."),
+});
+
 // Base schema for common fields (fullName, email, password)
 const baseUserSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters long."),

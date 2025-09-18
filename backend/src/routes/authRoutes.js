@@ -7,14 +7,22 @@ import { registerSchema, loginSchema } from "../utils/validationSchemas.js"; // 
 
 const router = express.Router();
 
-// Add the validation middleware before the upload and register controller
-// CORRECT ORDER
 router.post(
   "/register",
   upload.single("idProofUrl"),
   // validate(registerSchema),
   register
 );
+
+router.post("/check-email", validate(checkEmailSchema), async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    res.status(200).json({ exists: !!user });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // Add validation to the login route as well
 router.post("/login", login);
