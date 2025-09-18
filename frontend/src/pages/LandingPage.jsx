@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Waves, Search, Leaf, Factory, TestTubeDiagonal, Tractor, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 // Mock data for a single product's provenance
 const mockProvenanceData = {
@@ -77,7 +79,7 @@ const mockMostViewedProducts = [
 
 const ProductCard = ({ product }) => {
     return (
-        <div className="bg-slate-900/40 border border-transparent p-6 space-y-4 transition-all duration-300 hover:bg-slate-800 hover:border-blue-400 active:scale-[0.98]">
+        <div className="bg-slate-900/40 border border-transparent p-6 space-y-4 transition-all duration-300 hover:bg-slate-800 hover:border-emerald-400 active:scale-[0.98]">
             <div className="flex items-center justify-between">
                 <h4 className="text-xl font-bold text-white">{product.name}</h4>
                 <div className="flex items-center gap-2 text-sm text-green-400">
@@ -94,50 +96,106 @@ const ProductCard = ({ product }) => {
 };
 
 const LandingPage = () => {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [provenanceData, setProvenanceData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [animationsInitialized, setAnimationsInitialized] = useState(false);
+    const [forceGreenTheme, setForceGreenTheme] = useState(0); // Force re-render counter
     const heroRef = useRef(null);
     const mostViewedRef = useRef(null);
     const titleRef = useRef(null);
+    const observerRef = useRef(null);
 
     const handleSearch = () => {
-        if (!searchTerm) return;
+        if (!searchTerm.trim()) {
+            toast.error('Please enter a batch ID to search', {
+                duration: 3000,
+            });
+            return;
+        }
+        
         setLoading(true);
         setProvenanceData(null);
+        
+        const loadingToast = toast.loading('🔍 Searching blockchain records...', {
+            position: 'top-right',
+        });
 
         // Simulate an API call
         setTimeout(() => {
-            if (searchTerm.toUpperCase() === mockProvenanceData.batchId) {
+            toast.dismiss(loadingToast);
+            
+            if (searchTerm.toUpperCase().trim() === mockProvenanceData.batchId) {
                 setProvenanceData(mockProvenanceData);
+                toast.success(`✅ Found provenance record for ${mockProvenanceData.batchId}!`, {
+                    duration: 4000,
+                    position: 'top-right',
+                });
             } else {
                 setProvenanceData(null);
+                toast.error(`❌ No record found for "${searchTerm}". Try: ${mockProvenanceData.batchId}`, {
+                    duration: 4000,
+                    position: 'top-right',
+                });
             }
             setLoading(false);
         }, 1500);
     };
 
     const handleLogin = () => {
-        alert('Login button clicked!');
+        const loadingToast = toast.loading('Redirecting to login...', {
+            duration: 1000,
+        });
+        setTimeout(() => {
+            toast.dismiss(loadingToast);
+            navigate('/login');
+        }, 1000);
     };
 
     const handleSignup = () => {
-        alert('Signup button clicked!');
+        const loadingToast = toast.loading('Redirecting to signup...', {
+            duration: 1000,
+        });
+        setTimeout(() => {
+            toast.dismiss(loadingToast);
+            navigate('/signup');
+        }, 1000);
     };
 
-    useEffect(() => {
-        setMounted(true);
-        
-        // Since we can't import GSAP in this environment, we'll use CSS animations
-        // and simulate the scroll effects with vanilla JavaScript
-        
+    // Function to reset all animations
+    const resetAnimations = () => {
+        // Reset hero elements
+        const heroElements = document.querySelectorAll('.hero-animate');
+        heroElements.forEach((el) => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+        });
+
+        // Reset animated sections
+        const animatedSections = document.querySelectorAll('.animated-section');
+        animatedSections.forEach((section) => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(50px)';
+        });
+    };
+
+    // Function to initialize animations
+    const initializeAnimations = () => {
+        if (animationsInitialized) return;
+
+        // Clean up previous observer
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+        }
+
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
         };
 
-        const observer = new IntersectionObserver((entries) => {
+        observerRef.current = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
                     entry.target.style.opacity = '1';
@@ -146,28 +204,33 @@ const LandingPage = () => {
             });
         }, observerOptions);
 
-        // Observe all animated sections
+        // Set up animated sections
         const animatedSections = document.querySelectorAll('.animated-section');
         animatedSections.forEach((section) => {
             section.style.opacity = '0';
             section.style.transform = 'translateY(50px)';
             section.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
-            observer.observe(section);
+            observerRef.current.observe(section);
         });
 
-        // Hero animation
+        // Hero animation with proper delay
         const heroElements = document.querySelectorAll('.hero-animate');
         heroElements.forEach((el, index) => {
             el.style.opacity = '0';
             el.style.transform = 'translateY(30px)';
             el.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+            
             setTimeout(() => {
                 el.style.opacity = '1';
                 el.style.transform = 'translateY(0)';
-            }, index * 200);
+            }, index * 200 + 100); // Added small initial delay
         });
 
-        // Parallax effect
+        setAnimationsInitialized(true);
+    };
+
+    // Function to initialize parallax
+    const initializeParallax = () => {
         const handleScroll = () => {
             const scrolled = window.pageYOffset;
             const parallax = document.querySelector('.bg-parallax');
@@ -176,48 +239,282 @@ const LandingPage = () => {
             }
         };
 
+        // Initialize with current scroll position
+        handleScroll();
+        
+        // Remove existing scroll listener to prevent duplicates
+        window.removeEventListener('scroll', handleScroll);
         window.addEventListener('scroll', handleScroll);
 
+        return handleScroll;
+    };
+
+    useEffect(() => {
+        setMounted(true);
+        
+        // Show welcome toast when component mounts
+        toast.success('🌿 Welcome to AyurTrace - Herb Provenance Platform!', {
+            duration: 3000,
+            position: 'top-right',
+        });
+        
+        // Apply green theme immediately and aggressively
+        const immediateThemeApplication = () => {
+            applyGreenTheme();
+            // Apply multiple times to ensure it sticks
+            setTimeout(() => applyGreenTheme(), 50);
+            setTimeout(() => applyGreenTheme(), 100);
+            setTimeout(() => applyGreenTheme(), 200);
+        };
+        
+        immediateThemeApplication();
+        
+        // Reset animations first
+        resetAnimations();
+        
+        // Small delay to ensure DOM is ready
+        const initTimer = setTimeout(() => {
+            initializeAnimations();
+            const scrollHandler = initializeParallax();
+            applyGreenTheme(); // Apply green theme immediately on mount
+            
+            return () => {
+                window.removeEventListener('scroll', scrollHandler);
+            };
+        }, 100);
+
         return () => {
-            window.removeEventListener('scroll', handleScroll);
-            observer.disconnect();
+            clearTimeout(initTimer);
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
         };
     }, []);
 
+    // Force green theme application with inline styles to override any external CSS
+    const applyGreenTheme = () => {
+        // Set CSS custom properties for green theme
+        document.documentElement.style.setProperty('--primary-color', '#10b981');
+        document.documentElement.style.setProperty('--primary-light', '#34d399');
+        document.documentElement.style.setProperty('--primary-dark', '#059669');
+        
+        // Force update with inline styles to override any conflicting CSS
+        const logoIcon = document.querySelector('.logo-icon');
+        const signupBtn = document.querySelector('.signup-btn');
+        const loginBtn = document.querySelector('.login-btn');
+        const searchBtn = document.querySelector('.search-btn');
+        
+        if (logoIcon) {
+            logoIcon.style.color = '#34d399 !important';
+            logoIcon.style.setProperty('color', '#34d399', 'important');
+        }
+        
+        if (signupBtn) {
+            signupBtn.style.borderColor = '#34d399';
+            signupBtn.style.color = '#34d399';
+            signupBtn.style.setProperty('border-color', '#34d399', 'important');
+            signupBtn.style.setProperty('color', '#34d399', 'important');
+        }
+        
+        if (loginBtn) {
+            loginBtn.style.backgroundColor = '#10b981';
+            loginBtn.style.borderColor = '#10b981';
+            loginBtn.style.color = '#ffffff';
+            loginBtn.style.setProperty('background-color', '#10b981', 'important');
+            loginBtn.style.setProperty('border-color', '#10b981', 'important');
+            loginBtn.style.setProperty('color', '#ffffff', 'important');
+        }
+        
+        if (searchBtn) {
+            searchBtn.style.backgroundColor = '#10b981';
+            searchBtn.style.setProperty('background-color', '#10b981', 'important');
+        }
+        
+        // Force re-render to ensure styles are applied
+        setForceGreenTheme(prev => prev + 1);
+    };
+
+    // Reset animations when component is visible again (e.g., returning from login/signup)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && mounted) {
+                // Show return toast
+                toast.success('👋 Welcome back to AyurTrace!', {
+                    duration: 2000,
+                    position: 'top-right',
+                });
+                
+                // Aggressively force green theme application multiple times
+                const forceGreenMultipleTimes = () => {
+                    applyGreenTheme();
+                    setTimeout(() => applyGreenTheme(), 10);
+                    setTimeout(() => applyGreenTheme(), 50);
+                    setTimeout(() => applyGreenTheme(), 100);
+                    setTimeout(() => applyGreenTheme(), 200);
+                    setTimeout(() => applyGreenTheme(), 500);
+                };
+                
+                forceGreenMultipleTimes();
+                
+                // Reset and reinitialize animations when page becomes visible
+                setAnimationsInitialized(false);
+                setTimeout(() => {
+                    resetAnimations();
+                    setTimeout(() => {
+                        initializeAnimations();
+                        applyGreenTheme(); // Apply theme again after animations
+                    }, 50);
+                }, 100);
+            }
+        };
+
+        const handlePageShow = (event) => {
+            // Handle back/forward navigation
+            applyGreenTheme();
+            setTimeout(() => applyGreenTheme(), 100);
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pageshow', handlePageShow);
+        
+        // Also handle page focus
+        const handleFocus = () => {
+            applyGreenTheme(); // Apply green theme on focus
+            setTimeout(() => applyGreenTheme(), 50);
+            if (mounted && !animationsInitialized) {
+                setTimeout(() => {
+                    initializeAnimations();
+                    applyGreenTheme(); // Apply theme after animations
+                }, 100);
+            }
+        };
+
+        // Handle page load/refresh
+        const handleLoad = () => {
+            applyGreenTheme();
+            setTimeout(() => applyGreenTheme(), 100);
+        };
+
+        // Handle hash changes (SPA navigation)
+        const handleHashChange = () => {
+            applyGreenTheme();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('load', handleLoad);
+        window.addEventListener('hashchange', handleHashChange);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Continuous theme enforcement every few seconds when page is visible
+        const themeInterval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                applyGreenTheme();
+            }
+        }, 2000);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pageshow', handlePageShow);
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('load', handleLoad);
+            window.removeEventListener('hashchange', handleHashChange);
+            clearInterval(themeInterval);
+        };
+    }, [mounted, animationsInitialized]);
+
+    // Add handler for Call to Action buttons
+    const handleStartProject = () => {
+        toast('🚀 Start a Project feature coming soon!', {
+            duration: 3000,
+            position: 'top-right',
+            icon: '🔧',
+        });
+    };
+
+    const handleLearnMore = () => {
+        toast('📚 Learn More section coming soon!', {
+            duration: 3000,
+            position: 'top-right',
+            icon: '📖',
+        });
+    };
+
+    // Add handler for Enter key press in search input
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
     return (
-        <div className="min-h-screen relative overflow-hidden bg-slate-950">
-            {/* Background with Parallax - Updated to match second code pattern */}
+        <div className="min-h-screen relative overflow-hidden bg-slate-950" key={forceGreenTheme}>
+            {/* Add a style tag to enforce green theme globally */}
+            <style>{`
+                .logo-icon {
+                    color: #34d399 !important;
+                }
+                .signup-btn {
+                    border-color: #34d399 !important;
+                    color: #34d399 !important;
+                }
+                .signup-btn:hover {
+                    background-color: #10b981 !important;
+                    border-color: #10b981 !important;
+                    color: #ffffff !important;
+                }
+                .login-btn {
+                    background-color: #10b981 !important;
+                    border-color: #10b981 !important;
+                    color: #ffffff !important;
+                }
+                .login-btn:hover {
+                    background-color: transparent !important;
+                    border-color: #34d399 !important;
+                    color: #34d399 !important;
+                }
+                .search-btn {
+                    background-color: #10b981 !important;
+                }
+                .search-btn:hover {
+                    background-color: transparent !important;
+                    border-color: #34d399 !important;
+                    color: #34d399 !important;
+                }
+            `}</style>
+            {/* Background with Parallax */}
             <div 
                 className="bg-parallax absolute top-0 left-0 w-full h-[150%] z-0"
                 style={{
-                    backgroundImage: `url('/5.jpeg')`, 
+                    backgroundImage: `url('https://images.unsplash.com/photo-1544568100-847a948585b9?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')`, 
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    backgroundAttachment: 'fixed'
+                    backgroundColor: '#1e293b' // Navy blue fallback
                 }}
             />
             
             {/* Gradient Overlay */}
             <div className="absolute inset-0 z-1 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/90" />
 
-            {/* Header with Navigation Buttons */}
+            {/* Header with Navigation Buttons - Changed to green theme with explicit classes */}
             <header className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center bg-slate-950/20 backdrop-blur-md border-b border-slate-800/50">
                 <div className="flex items-center gap-2">
-                    <Waves className="w-8 h-8 text-blue-400" />
-                    <span className="font-bold text-xl text-white">AyurTrace</span>
+                  <Waves className="w-8 h-8 text-[#34d399] logo-icon" />
+                  <span className="font-bold text-xl text-white">AyurTrace</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <button
-                        className="px-5 py-2 border border-blue-400 text-blue-400 font-semibold transition-all duration-300 hover:bg-blue-800/30 hover:text-white active:scale-[0.98] cursor-pointer"
-                        onClick={handleSignup}
+                      className="px-5 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300
+                                hover:bg-[#10b981] hover:border-[#10b981] hover:text-white active:scale-[0.98] cursor-pointer signup-btn"
+                      onClick={handleSignup}
                     >
-                        Signup
+                      Signup
                     </button>
                     <button
-                        className="px-5 py-2 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-800 hover:text-white active:scale-[0.98] cursor-pointer"
-                        onClick={handleLogin}
+                      className="px-5 py-2 border border-[#10b981] bg-[#10b981] text-white font-semibold transition-all duration-300
+                                hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] cursor-pointer login-btn"
+                      onClick={handleLogin}
                     >
-                        Login
+                      Login
                     </button>
                 </div>
             </header>
@@ -255,13 +552,21 @@ const LandingPage = () => {
                                 placeholder="Enter Batch ID (try: VEDA-A-12345)..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyPress={handleKeyPress}
                                 className="flex-1 px-6 py-4 bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 transition-colors duration-300 focus:outline-none focus:border-emerald-400 backdrop-blur-sm"
+                                onFocus={() => {
+                                    toast('💡 Try searching for: VEDA-A-12345', {
+                                        duration: 2000,
+                                        position: 'top-right',
+                                    });
+                                }}
                             />
                             <button
-                                onClick={handleSearch}
-                                className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+                              onClick={handleSearch}
+                              className="px-6 py-4 border border-[#10b981] bg-[#10b981] text-white font-semibold transition-all duration-300
+                                        hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] cursor-pointer search-btn"
                             >
-                                <Search className="w-5 h-5" />
+                              <Search className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
@@ -316,7 +621,17 @@ const LandingPage = () => {
                     </div>
                     <div className="grid md:grid-cols-3 gap-8">
                         {mockMostViewedProducts.map(product => (
-                            <ProductCard key={product.id} product={product} />
+                            <div 
+                                key={product.id} 
+                                onClick={() => {
+                                    toast.success(`📊 Viewing details for ${product.name}`, {
+                                        duration: 2000,
+                                    });
+                                }}
+                                className="cursor-pointer"
+                            >
+                                <ProductCard product={product} />
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -332,12 +647,14 @@ const LandingPage = () => {
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button
-                                className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+                                onClick={handleStartProject}
+                                className="px-8 py-3 border border-emerald-600 bg-emerald-600 text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-emerald-400 hover:text-emerald-400 active:scale-[0.98]"
                             >
                                 Start a Project
                             </button>
                             <button
-                                className="px-8 py-3 border border-slate-600 text-slate-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white font-semibold transition-all duration-300 active:scale-[0.98]"
+                                onClick={handleLearnMore}
+                                className="px-8 py-3 border border-emerald-400 bg-transparent text-emerald-400 font-semibold transition-all duration-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white active:scale-[0.98]"
                             >
                                 Learn More
                             </button>
