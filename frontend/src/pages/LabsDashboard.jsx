@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Upload, History, User, TestTubeDiagonal, Tag } from 'lucide-react';
+import { Upload, History, User, TestTubeDiagonal, Tag, LogOut, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useReportStore } from '../stores/useReportStore';
+import { useAuthStore } from '../stores/useAuthStore';
 
 // Reusable UI components
 const Card = ({ children }) => (
-  <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-lg p-6 shadow-2xl space-y-6">
+  <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 p-6 shadow-2xl space-y-6">
     {children}
   </div>
 );
@@ -166,7 +167,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
           required 
           disabled={isSubmitting} 
           placeholder="e.g., MFG-RPT-2024-001" 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
 
@@ -182,7 +183,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
           onChange={handleChange} 
           required 
           disabled={isSubmitting} 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="">Select Test Type</option>
           <option value="Heavy Metals Analysis">Heavy Metals Analysis</option>
@@ -209,7 +210,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
           disabled={isSubmitting} 
           rows="4" 
           placeholder="Summary of test results and findings..." 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed" 
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
 
@@ -225,7 +226,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
           onChange={handleChange} 
           required 
           disabled={isSubmitting} 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="registered">Registered</option>
           <option value="preliminary">Preliminary</option>
@@ -249,7 +250,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
             required 
             disabled={isSubmitting} 
             max={new Date().toISOString().split('T')[0]} 
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
           />
         </div>
         <div>
@@ -265,7 +266,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
             required 
             disabled={isSubmitting} 
             max={new Date().toISOString().split('T')[0]} 
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
           />
         </div>
       </div>
@@ -283,7 +284,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
           disabled={isSubmitting} 
           rows="3" 
           placeholder="Any additional observations or comments..." 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed" 
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
 
@@ -300,7 +301,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
             onChange={(e) => setTagInput(e.target.value)} 
             disabled={isSubmitting} 
             placeholder="e.g., NABL, ISO-17025, AYUSH-Approved" 
-            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
+            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 handleAddTag(e);
@@ -311,7 +312,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
             type="button" 
             onClick={handleAddTag} 
             disabled={isSubmitting || !tagInput.trim()} 
-            className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 rounded-md hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Tag className="h-5 w-5" />
           </button>
@@ -323,7 +324,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
             {formData.regulatoryTags.map((tag, index) => (
               <span 
                 key={index} 
-                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 rounded-full text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200" 
+                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200" 
                 onClick={() => !isSubmitting && handleRemoveTag(tag)}
               >
                 {tag}
@@ -347,7 +348,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
           onChange={handleFileChange} 
           required 
           disabled={isSubmitting} 
-          className="mt-1 block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] file:transition-colors file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
+          className="mt-1 block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] file:transition-colors file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
         />
         <p className="mt-2 text-xs text-slate-400">
           Upload the official lab report document (PDF, DOC, or DOCX). Maximum file size: 10MB
@@ -362,7 +363,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
       <button 
         type="submit" 
         disabled={isSubmitting} 
-        className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold rounded-md transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Upload className="h-4 w-4 mr-2" />
         {isSubmitting ? 'Submitting...' : 'Submit Lab Report'}
@@ -430,7 +431,7 @@ const LabHistory = ({ reports }) => {
                     {report.testType}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(report.status)}`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(report.status)}`}>
                       {report.status}
                     </span>
                   </td>
@@ -465,75 +466,165 @@ const LabHistory = ({ reports }) => {
 };
 
 // Component for the lab profile section
-const LabProfile = ({ profile }) => (
-  <div className="space-y-6">
-    <SectionTitle title="Laboratory Profile" />
-    
-    <div className="space-y-4 text-slate-300">
-      <div className="flex items-center space-x-4">
-        <div className="p-4 bg-slate-700/50 border border-slate-600 rounded-lg">
-          <TestTubeDiagonal className="h-12 w-12 text-[#34d399]" />
-        </div>
-        <div>
-          <h4 className="text-xl font-bold text-white">{profile.labName}</h4>
-          <p className="text-sm text-slate-400">
-            Authorized Representative: {profile.authorizedRepresentative}
-          </p>
+const LabProfile = ({ profile, user, isLoading, onRefresh }) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <SectionTitle title="Laboratory Profile" />
+        <div className="text-center py-12">
+          <Loader2 className="h-12 w-12 text-[#34d399] animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Loading profile...</p>
         </div>
       </div>
+    );
+  }
+
+  if (!profile || !user) {
+    return (
+      <div className="space-y-6">
+        <SectionTitle title="Laboratory Profile" />
+        <div className="text-center py-12">
+          <User className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+          <p className="text-slate-500 text-lg mb-2">Profile not found</p>
+          <p className="text-slate-400 text-sm mb-4">Unable to load your profile information.</p>
+          <button
+            onClick={onRefresh}
+            className="px-4 py-2 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <SectionTitle title="Laboratory Profile" />
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50 transition-all duration-300"
+        >
+          <Loader2 className="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400 font-medium">NABL Accreditation Number</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
-            {profile.nablAccreditationNumber}
-          </p>
+      <div className="space-y-6 text-slate-300">
+        {/* User Information */}
+        <div className="bg-slate-800/30 p-4 border border-slate-700/50">
+          <h4 className="text-lg font-semibold text-white mb-3">Account Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Full Name</p>
+              <p className="text-white font-medium">{user.fullName}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Email</p>
+              <p className="text-white font-medium">{user.email}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Role</p>
+              <p className="text-white font-medium capitalize">{user.role}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Member Since</p>
+              <p className="text-white font-medium">{formatDate(user.createdAt)}</p>
+            </div>
+          </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400 font-medium">PAN</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
-            {profile.pan}
-          </p>
+        
+        {/* Lab Profile Information */}
+        <div className="flex items-center space-x-4">
+          <div className="p-4 bg-slate-700/50 border border-slate-600">
+            <TestTubeDiagonal className="h-12 w-12 text-[#34d399]" />
+          </div>
+          <div>
+            <h4 className="text-xl font-bold text-white">{profile.labName}</h4>
+            <p className="text-sm text-slate-400">
+              Authorized Representative: {profile.authorizedRepresentative}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Profile created: {formatDate(profile.createdAt)}
+            </p>
+          </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400 font-medium">GSTIN</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
-            {profile.gstin}
-          </p>
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400 font-medium">Scope of NABL Accreditation</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
-            {profile.scopeOfNablAccreditation}
-          </p>
-        </div>
-        <div className="md:col-span-2 space-y-2">
-          <p className="text-sm text-slate-400 font-medium">Registered Address</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
-            {profile.registeredAddress}
-          </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">NABL Accreditation Number</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.nablAccreditationNumber}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">PAN</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.pan}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">GSTIN</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.gstin}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">Scope of NABL Accreditation</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.scopeOfNablAccreditation}
+            </p>
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <p className="text-sm text-slate-400 font-medium">Registered Address</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.registeredAddress}
+            </p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Main Dashboard Component
 const LabsDashboard = () => {
   const [activeSection, setActiveSection] = useState('history');
   const [labReports, setLabReports] = useState([]);
-  const [labProfile] = useState({
-    labName: "Herbal Quality Labs Pvt. Ltd.",
-    nablAccreditationNumber: "TC-1234",
-    scopeOfNablAccreditation: "Heavy Metals, Microbial Limit Test, Phytochemical Assay",
-    pan: "AAAAF1234B",
-    gstin: "27ABCDE1234F1Z5",
-    registeredAddress: "Plot No. 22, Industrial Area, Delhi – 110001",
-    authorizedRepresentative: "Dr. Suman Verma",
-  });
-
-  // Use the useReportStore
+  
+  const { logout, getProfile, profile, user, isLoading } = useAuthStore();
   const { isSubmitting, submitReport } = useReportStore();
+  
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  // Load profile when component mounts or when profile section is accessed
+  React.useEffect(() => {
+    if (activeSection === 'profile' && !profile) {
+      handleGetProfile();
+    }
+  }, [activeSection, profile]);
+
+  const handleGetProfile = async () => {
+    setProfileLoading(true);
+    try {
+      await getProfile();
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handleUploadSubmit = async (formData) => {
     try {
@@ -573,6 +664,10 @@ const LabsDashboard = () => {
     setActiveSection(section);
   };
 
+  const handleLogout = () => {
+    logout();
+  }
+
   const renderSection = () => {
     switch (activeSection) {
       case 'upload':
@@ -585,7 +680,14 @@ const LabsDashboard = () => {
       case 'history':
         return <LabHistory reports={labReports} />;
       case 'profile':
-        return <LabProfile profile={labProfile} />;
+        return (
+          <LabProfile 
+            profile={profile}
+            user={user}
+            isLoading={profileLoading || isLoading}
+            onRefresh={handleGetProfile}
+          />
+        );
       default:
         return <LabHistory reports={labReports} />;
     }
@@ -614,9 +716,16 @@ const LabsDashboard = () => {
               Manage lab reports and testing documentation
             </p>
           </div>
-          <div className="relative">
+          <div className="relative flex gap-3">
             <button
-              className="flex items-center gap-2 px-6 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold rounded-lg transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white"
+              className="flex items-center gap-2 px-6 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
+              onClick={() => handleLogout()}
+            >
+              <LogOut className="h-5 w-5" />
+              Logout
+            </button>
+            <button
+              className="flex items-center gap-2 px-6 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
               onClick={() => handleSectionChange('profile')}
             >
               <User className="h-5 w-5" />
@@ -633,7 +742,7 @@ const LabsDashboard = () => {
               <nav className="space-y-2">
                 <button
                   onClick={() => handleSectionChange('history')}
-                  className={`w-full flex items-center gap-4 p-4 rounded-lg transition-all duration-300 text-left ${
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left cursor-pointer ${
                     activeSection === 'history' 
                       ? 'bg-green-600/30 border-l-4 border-green-500 text-green-300' 
                       : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
@@ -644,7 +753,7 @@ const LabsDashboard = () => {
                 </button>
                 <button
                   onClick={() => handleSectionChange('upload')}
-                  className={`w-full flex items-center gap-4 p-4 rounded-lg transition-all duration-300 text-left ${
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left cursor-pointer ${
                     activeSection === 'upload' 
                       ? 'bg-[#10b981]/30 border-l-4 border-[#34d399] text-[#34d399]' 
                       : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'

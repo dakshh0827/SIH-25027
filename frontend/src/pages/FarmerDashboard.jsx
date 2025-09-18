@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Upload, History, User, MapPin, Plus, Tag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, History, User, MapPin, Plus, Tag, LogOut, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useReportStore } from '../stores/useReportStore';
+import { useAuthStore } from '../stores/useAuthStore';
 
 // Reusable UI components
 const Card = ({ children }) => (
@@ -12,6 +13,16 @@ const Card = ({ children }) => (
 
 const SectionTitle = ({ title }) => (
   <h3 className="text-xl text-white font-semibold border-b border-slate-700/50 pb-2">{title}</h3>
+);
+
+// Loading component
+const LoadingSpinner = ({ message = "Loading..." }) => (
+  <div className="flex items-center justify-center py-12">
+    <div className="text-center">
+      <Loader2 className="h-12 w-12 text-[#34d399] animate-spin mx-auto mb-4" />
+      <p className="text-slate-400">{message}</p>
+    </div>
+  </div>
 );
 
 // Form for uploading a new harvest record
@@ -332,7 +343,7 @@ const UploadHarvestForm = ({ onSubmit, isSubmitting }) => {
       >
         {isSubmitting ? (
           <>
-            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent mr-2"></div>
+            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent"></div>
             Submitting...
           </>
         ) : (
@@ -420,82 +431,178 @@ const HarvestHistory = ({ records }) => {
 };
 
 // Component for the user profile section
-const UserProfile = ({ profile }) => (
-  <div className="space-y-6">
-    <SectionTitle title="Farmer Profile" />
-    
-    <div className="space-y-4 text-slate-300">
-      <div className="flex items-center space-x-4">
-        <div className="p-4 bg-slate-700/50 border border-slate-600">
-          <User className="h-12 w-12 text-[#34d399]" />
-        </div>
-        <div>
-          <h4 className="text-xl font-bold text-white">{profile.fpoName}</h4>
-          <p className="text-sm text-slate-400">
-            Authorized Representative: {profile.authorizedRepresentative}
-          </p>
+const UserProfile = ({ profile, user, isLoading, onRefresh }) => {
+  if (isLoading) {
+    return <LoadingSpinner message="Loading profile..." />;
+  }
+
+  if (!profile || !user) {
+    return (
+      <div className="space-y-6">
+        <SectionTitle title="Profile" />
+        <div className="text-center py-12">
+          <User className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+          <p className="text-slate-500 text-lg mb-2">Profile not found</p>
+          <p className="text-slate-400 text-sm mb-4">Unable to load your profile information</p>
+          <button
+            onClick={onRefresh}
+            className="px-4 py-2 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300"
+          >
+            Retry
+          </button>
         </div>
       </div>
+    );
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <SectionTitle title="Farmer Profile" />
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50 transition-all duration-300"
+        >
+          <Loader2 className="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400 font-medium">Registration Number</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
-            {profile.regNumber}
-          </p>
+      <div className="space-y-6 text-slate-300">
+        {/* User Information */}
+        <div className="bg-slate-800/30 p-4 border border-slate-700/50">
+          <h4 className="text-lg font-semibold text-white mb-3">Account Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Full Name</p>
+              <p className="text-white font-medium">{user.fullName}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Email</p>
+              <p className="text-white font-medium">{user.email}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Role</p>
+              <p className="text-white font-medium capitalize">{user.role}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Member Since</p>
+              <p className="text-white font-medium">{formatDate(user.createdAt)}</p>
+            </div>
+          </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400 font-medium">PAN</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
-            {profile.pan}
-          </p>
+
+        {/* FPO Profile Information */}
+        <div className="flex items-center space-x-4">
+          <div className="p-4 bg-slate-700/50 border border-slate-600">
+            <User className="h-12 w-12 text-[#34d399]" />
+          </div>
+          <div>
+            <h4 className="text-xl font-bold text-white">{profile.fpoName}</h4>
+            <p className="text-sm text-slate-400">
+              Authorized Representative: {profile.authorizedRepresentative}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Profile created: {formatDate(profile.createdAt)}
+            </p>
+          </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm text-slate-400 font-medium">GSTIN</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
-            {profile.gstin}
-          </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">Registration Number</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.regNumber}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">PAN</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.pan}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">GSTIN</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.gstin}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">Last Updated</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {formatDate(profile.updatedAt)}
+            </p>
+          </div>
         </div>
+
         <div className="space-y-2">
           <p className="text-sm text-slate-400 font-medium">Registered Address</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
             {profile.registeredAddress}
           </p>
         </div>
+
+        {/* ID Proof Image */}
+        {profile.idProofUrl && (
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400 font-medium">ID Proof Document</p>
+            <div className="bg-slate-800/50 border border-slate-700/30 p-3">
+              <img 
+                src={profile.idProofUrl} 
+                alt="ID Proof" 
+                className="max-w-full h-auto max-h-64 mx-auto border border-slate-600"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }}
+              />
+              <p className="text-red-400 text-sm text-center mt-2" style={{display: 'none'}}>
+                Failed to load image
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Main Dashboard Component
 const FarmerDashboard = () => {
   const [activeSection, setActiveSection] = useState('history');
   const [harvestRecords, setHarvestRecords] = useState([]);
-  const [fpoProfile] = useState({
-    fpoName: "Green Harvest Producer Company Ltd.",
-    regNumber: "U01234MH2020PTC123456",
-    pan: "AAAAF1234B",
-    gstin: "27ABCDE1234F1Z5",
-    registeredAddress: "123, Market Road, District XYZ, Madhya Pradesh",
-    authorizedRepresentative: "Mr. Ramesh Kumar",
-  });
-
-  // Use the useReportStore
+  const [profileLoading, setProfileLoading] = useState(false);
+  
+  const { logout, getProfile, profile, user, isLoading } = useAuthStore();
   const { isSubmitting, submitReport } = useReportStore();
 
-  // Welcome toast when component mounts - FIXED DURATION
-  // React.useEffect(() => {
-  //   // const welcomeTimer = setTimeout(() => {
-  //   //   toast('🌾 Welcome to your Farmer Dashboard!', {
-  //   //     icon: '👋',
-  //   //     duration: 4000, // 4 seconds duration
-  //   //   });
-  //   }, 800);
+  // Load profile when component mounts or when profile section is accessed
+  useEffect(() => {
+    if (activeSection === 'profile' && !profile) {
+      handleGetProfile();
+    }
+  }, [activeSection, profile]);
 
-  //   return () => {
-  //     clearTimeout(welcomeTimer);
-  //   };
-  // }, []);
+  const handleGetProfile = async () => {
+    setProfileLoading(true);
+    try {
+      await getProfile();
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handleUploadSubmit = async (formData) => {
     try {
@@ -531,6 +638,10 @@ const FarmerDashboard = () => {
   const handleSectionChange = (section) => {
     setActiveSection(section);
   };
+  
+  const handleLogout = () => {
+    logout();
+  };
 
   const renderSection = () => {
     switch (activeSection) {
@@ -544,7 +655,14 @@ const FarmerDashboard = () => {
       case 'history':
         return <HarvestHistory records={harvestRecords} />;
       case 'profile':
-        return <UserProfile profile={fpoProfile} />;
+        return (
+          <UserProfile 
+            profile={profile} 
+            user={user}
+            isLoading={profileLoading || isLoading}
+            onRefresh={handleGetProfile}
+          />
+        );
       default:
         return <HarvestHistory records={harvestRecords} />;
     }
@@ -568,7 +686,7 @@ const FarmerDashboard = () => {
             maxWidth: '400px',
           },
           success: {
-            duration: 4000, // Increased duration for success messages
+            duration: 4000,
             iconTheme: {
               primary: '#10b981',
               secondary: '#ffffff',
@@ -595,10 +713,22 @@ const FarmerDashboard = () => {
             <p className="text-slate-400 text-sm mt-1">
               Manage harvest records and farming documentation
             </p>
+            {user && (
+              <p className="text-slate-500 text-xs mt-1">
+                Welcome back, {user.fullName}
+              </p>
+            )}
           </div>
-          <div className="relative">
+          <div className="relative flex gap-3">
             <button
-              className="flex items-center gap-2 px-6 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white"
+              className="flex items-center gap-2 px-6 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              Logout
+            </button>
+            <button
+              className="flex items-center gap-2 px-6 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
               onClick={() => handleSectionChange('profile')}
             >
               <User className="h-5 w-5" />
@@ -615,7 +745,7 @@ const FarmerDashboard = () => {
               <nav className="space-y-2">
                 <button
                   onClick={() => handleSectionChange('history')}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left ${
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left cursor-pointer ${
                     activeSection === 'history' 
                       ? 'bg-green-600/30 border-l-4 border-green-500 text-green-300' 
                       : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
@@ -626,7 +756,7 @@ const FarmerDashboard = () => {
                 </button>
                 <button
                   onClick={() => handleSectionChange('upload')}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left ${
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left cursor-pointer ${
                     activeSection === 'upload' 
                       ? 'bg-[#10b981]/30 border-l-4 border-[#34d399] text-[#34d399]' 
                       : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Upload, History, User, Factory, Plus, Tag, Calendar, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, History, User, Factory, Plus, Tag, LogOut, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useReportStore } from '../stores/useReportStore';
+import { useAuthStore } from '../stores/useAuthStore';
 
 // Reusable UI components
 const Card = ({ children }) => (
@@ -12,6 +13,16 @@ const Card = ({ children }) => (
 
 const SectionTitle = ({ title }) => (
   <h3 className="text-xl text-white font-semibold border-b border-slate-700/50 pb-2">{title}</h3>
+);
+
+// Loading component
+const LoadingSpinner = ({ message = "Loading..." }) => (
+  <div className="flex items-center justify-center py-12">
+    <div className="text-center">
+      <Loader2 className="h-12 w-12 text-[#34d399] animate-spin mx-auto mb-4" />
+      <p className="text-slate-400">{message}</p>
+    </div>
+  </div>
 );
 
 // Form for uploading a new manufacturing report
@@ -74,7 +85,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
       </div>
       <div>
         <label htmlFor="processingSteps" className="block text-sm font-medium text-slate-300">Processing Steps <span className="text-red-400">*</span></label>
-        <textarea name="processingSteps" id="processingSteps" value={formData.processingSteps} onChange={handleChange} rows="4" required disabled={isSubmitting} placeholder="Describe the complete manufacturing process, including cleaning, drying, grinding, and packaging steps..." className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50" />
+        <textarea name="processingSteps" id="processingSteps" value={formData.processingSteps} onChange={handleChange} rows="4" required disabled={isSubmitting} placeholder="Describe the complete manufacturing process, including cleaning, drying, and grinding, and packaging steps..." className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50" />
       </div>
       <div>
         <label htmlFor="status" className="block text-sm font-medium text-slate-300">Manufacturing Status <span className="text-red-400">*</span></label>
@@ -120,7 +131,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
       <button type="submit" disabled={isSubmitting} className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50">
         {isSubmitting ? (
           <>
-            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent"></div>
             Submitting...
           </>
         ) : (
@@ -138,97 +149,205 @@ const ManufacturingHistory = ({ reports }) => {
     toast.success(`📊 Viewing details for batch ${report.batchId}`, { duration: 2000 });
   };
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-slate-700">
-        <thead>
-          <tr className="bg-slate-800/50 text-slate-400">
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Batch ID</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Herb Used</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Quantity (kg)</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Date</th>
-          </tr>
-        </thead>
-        <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
-          {reports.length > 0 ? (
-            reports.map((report, index) => (
-              <tr key={index} className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200" onClick={() => handleReportClick(report)}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">{report.batchId}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{report.herbUsed}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{report.quantityUsedKg || report.quantityUsed}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${report.status === 'completed' ? 'bg-green-600/30 text-green-400' : report.status === 'in-progress' ? 'bg-blue-600/30 text-blue-400' : report.status === 'cancelled' ? 'bg-red-600/30 text-red-400' : 'bg-yellow-600/30 text-yellow-400'}`}>
-                    {report.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{report.effectiveDate || report.date}</td>
+    <div className="space-y-4">
+      <SectionTitle title="Manufacturing Reports History" />
+      {reports.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-700">
+            <thead>
+              <tr className="bg-slate-800/50 text-slate-400">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Batch ID</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Herb Used</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Quantity (kg)</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Date</th>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">
-                📝 No reports found. Submit your first manufacturing report!
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
+              {reports.map((report, index) => (
+                <tr key={index} className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200" onClick={() => handleReportClick(report)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">{report.batchId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{report.herbUsed}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{report.quantityUsedKg || report.quantityUsed}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium ${report.status === 'completed' ? 'bg-green-600/30 text-green-400' : report.status === 'in-progress' ? 'bg-blue-600/30 text-blue-400' : report.status === 'cancelled' ? 'bg-red-600/30 text-red-400' : 'bg-yellow-600/30 text-yellow-400'}`}>
+                      {report.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{report.effectiveDate || report.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <Factory className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+          <p className="text-slate-500 text-lg mb-2">No manufacturing reports found</p>
+          <p className="text-slate-400 text-sm">Submit your first manufacturing report to get started!</p>
+        </div>
+      )}
     </div>
   );
 };
 
-const ManufacturerProfile = ({ profile }) => (
-  <div className="space-y-4 text-slate-300">
-    <div className="flex items-center space-x-4">
-      <div className="p-4 bg-slate-700/50 border border-slate-600">
-        <Factory className="h-12 w-12 text-[#34d399]" />
+const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <SectionTitle title="Manufacturer Profile" />
+        <div className="text-center py-12">
+          <Loader2 className="h-12 w-12 text-[#34d399] animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Loading profile...</p>
+        </div>
       </div>
-      <div>
-        <h4 className="text-xl font-bold text-white">{profile.manufacturerName}</h4>
-        <p className="text-sm text-slate-400">Authorized Representative: {profile.authorizedRepresentative}</p>
+    );
+  }
+
+  if (!profile || !user) {
+    return (
+      <div className="space-y-6">
+        <SectionTitle title="Manufacturer Profile" />
+        <div className="text-center py-12">
+          <User className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+          <p className="text-slate-500 text-lg mb-2">Profile not found</p>
+          <p className="text-slate-400 text-sm mb-4">Unable to load your profile information.</p>
+          <button
+            onClick={onRefresh}
+            className="px-4 py-2 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <SectionTitle title="Manufacturer Profile" />
+        <button
+          onClick={onRefresh}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50 transition-all duration-300"
+        >
+          <Loader2 className="h-4 w-4" />
+          Refresh
+        </button>
+      </div>
+      
+      <div className="space-y-6 text-slate-300">
+        {/* User Information */}
+        <div className="bg-slate-800/30 p-4 border border-slate-700/50">
+          <h4 className="text-lg font-semibold text-white mb-3">Account Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Full Name</p>
+              <p className="text-white font-medium">{user.fullName}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Email</p>
+              <p className="text-white font-medium">{user.email}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Role</p>
+              <p className="text-white font-medium capitalize">{user.role}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-400 font-medium">Member Since</p>
+              <p className="text-white font-medium">{formatDate(user.createdAt)}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Manufacturer Profile Information */}
+        <div className="flex items-center space-x-4">
+          <div className="p-4 bg-slate-700/50 border border-slate-600">
+            <Factory className="h-12 w-12 text-[#34d399]" />
+          </div>
+          <div>
+            <h4 className="text-xl font-bold text-white">{profile.manufacturerName}</h4>
+            <p className="text-sm text-slate-400">Authorized Representative: {profile.authorizedRepresentative}</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Profile created: {formatDate(profile.createdAt)}
+            </p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-slate-400">AYUSH License Number</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.ayushLicenseNumber}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-slate-400">Registration Number</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.regNumber}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-slate-400">PAN</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.pan}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-slate-400">GSTIN</p>
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+              {profile.gstin}
+            </p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-slate-400">Registered Address</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
+            {profile.registeredAddress}
+          </p>
+        </div>
       </div>
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <p className="text-sm text-slate-400">AYUSH License Number</p>
-        <p className="text-white font-medium">{profile.ayushLicenseNumber}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">Registration Number</p>
-        <p className="text-white font-medium">{profile.regNumber}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">PAN</p>
-        <p className="text-white font-medium">{profile.pan}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">GSTIN</p>
-        <p className="text-white font-medium">{profile.gstin}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">Registered Address</p>
-        <p className="text-white font-medium">{profile.registeredAddress}</p>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 // Main Dashboard Component
 const ManufacturerDashboard = () => {
   const [activeSection, setActiveSection] = useState('history');
   const [manufacturingReports, setManufacturingReports] = useState([]);
-  const [manufacturerProfile] = useState({
-    manufacturerName: "VedaHerbs Ayurvedic Pvt. Ltd.",
-    ayushLicenseNumber: "AYUSH/MD/2023/000123",
-    regNumber: "U01234MH2020PTC123456",
-    pan: "AAAAF1234B",
-    gstin: "27ABCDE1234F1Z5",
-    registeredAddress: "Plot No. 45, Industrial Area, Delhi – 110001",
-    authorizedRepresentative: "Dr. Ramesh Sharma",
-  });
-
-  // Use the useReportStore
+  
+  const { logout, getProfile, profile, user, isLoading } = useAuthStore();
   const { isSubmitting, submitReport } = useReportStore();
+  
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  // Load profile when component mounts or when profile section is accessed
+  useEffect(() => {
+    if (activeSection === 'profile' && !profile) {
+      handleGetProfile();
+    }
+  }, [activeSection, profile]);
+
+  const handleGetProfile = async () => {
+    setProfileLoading(true);
+    try {
+      await getProfile();
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      toast.error('Failed to load profile');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handleUploadSubmit = async (formData) => {
     const newReport = await submitReport({ reportType: 'manufacturer', data: formData });
@@ -242,6 +361,10 @@ const ManufacturerDashboard = () => {
     setActiveSection(section);
   };
 
+  const handleLogout = () => {
+    logout();
+  }
+
   const renderSection = () => {
     switch (activeSection) {
       case 'upload':
@@ -249,9 +372,16 @@ const ManufacturerDashboard = () => {
       case 'history':
         return <ManufacturingHistory reports={manufacturingReports} />;
       case 'profile':
-        return <ManufacturerProfile profile={manufacturerProfile} />;
+        return (
+          <ManufacturerProfile
+            profile={profile}
+            user={user}
+            isLoading={profileLoading || isLoading}
+            onRefresh={handleGetProfile}
+          />
+        );
       default:
-        return null;
+        return <ManufacturingHistory reports={manufacturingReports} />;
     }
   };
 
@@ -262,9 +392,16 @@ const ManufacturerDashboard = () => {
         {/* Navbar */}
         <nav className="flex items-center justify-between py-4 mb-8 border-b border-slate-700/50">
           <h1 className="text-2xl font-bold">Manufacturer Dashboard</h1>
-          <div className="relative">
+          <div className="relative flex gap-3">
             <button
-              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white"
+              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              Logout
+            </button>
+            <button
+              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
               onClick={() => handleSectionChange('profile')}
             >
               <User className="h-5 w-5" />
@@ -280,14 +417,14 @@ const ManufacturerDashboard = () => {
               <nav className="space-y-2">
                 <button
                   onClick={() => handleSectionChange('history')}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 hover:bg-green-600/20 ${activeSection === 'history' ? 'bg-green-600/30 border-l-4 border-green-500' : 'text-slate-400'}`}
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 cursor-pointer hover:bg-green-600/20 ${activeSection === 'history' ? 'bg-green-600/30 border-l-4 border-green-500' : 'text-slate-400'}`}
                 >
                   <History className="h-5 w-5" />
                   History
                 </button>
                 <button
                   onClick={() => handleSectionChange('upload')}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 hover:bg-[#10b981]/20 ${activeSection === 'upload' ? 'bg-[#10b981]/30 border-l-4 border-[#34d399]' : 'text-slate-400'}`}
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 cursor-pointer hover:bg-[#10b981]/20 ${activeSection === 'upload' ? 'bg-[#10b981]/30 border-l-4 border-[#34d399]' : 'text-slate-400'}`}
                 >
                   <Upload className="h-5 w-5" />
                   Upload New Report

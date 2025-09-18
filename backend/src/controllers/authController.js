@@ -275,16 +275,16 @@ export const login = async (req, res) => {
     // Find the associated profile to include in the payload
     let profile = null;
     switch (user.role) {
-      case Role.FARMER:
+      case Role.farmer:
         profile = await prisma.farmerProfile.findUnique({ where: { userId: user.id } });
         break;
-      case Role.MANUFACTURER:
+      case Role.manufacturer:
         profile = await prisma.manufacturerProfile.findUnique({ where: { userId: user.id } });
         break;
-      case Role.LAB:
+      case Role.lab:
         profile = await prisma.laboratoryProfile.findUnique({ where: { userId: user.id } });
         break;
-      case Role.ADMIN:
+      case Role.admin:
         profile = await prisma.adminProfile.findUnique({ where: { userId: user.id } });
         break;
     }
@@ -313,5 +313,128 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error during login." });
+  }
+};
+
+export const getProfile = async (req, res) => {
+  try {
+    // Debug logging
+    console.log('req.user:', req.user);
+    console.log('req.tokenPayload:', req.tokenPayload);
+    
+    const userId = req.user.id; // Changed from req.user.userId to req.user.id
+    console.log('Extracted userId:', userId);
+    
+    // First get the user data
+    const user = await prisma.user.findUnique({ 
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Get the profile data based on user role
+    let profile = null;
+    switch (user.role) {
+      case Role.farmer:
+        profile = await prisma.farmerProfile.findUnique({ 
+          where: { userId: user.id },
+          select: {
+            id: true,
+            fpoName: true,
+            regNumber: true,
+            pan: true,
+            gstin: true,
+            registeredAddress: true,
+            authorizedRepresentative: true,
+            // idProofUrl: true, // Removed - this field doesn't exist in FarmerProfile
+            // createdAt: true,
+            // updatedAt: true
+          }
+        });
+        break;
+      case Role.manufacturer:
+        profile = await prisma.manufacturerProfile.findUnique({ 
+          where: { userId: user.id },
+          select: {
+            id: true,
+            manufacturerName: true,
+            ayushLicenseNumber: true,
+            registrationNumber: true,
+            pan: true,
+            gstin: true,
+            registeredAddress: true,
+            authorizedRepresentative: true,
+          }
+        });
+        break;
+      case Role.lab:
+        profile = await prisma.laboratoryProfile.findUnique({ 
+          where: { userId: user.id },
+          select: {
+            id: true,
+            labName: true,
+            nablAccreditationNumber: true,
+            scopeOfNablAccreditation: true,
+            pan: true,
+            gstin: true,
+            registeredAddress: true,
+            authorizedRepresentative: true,
+          }
+        });
+        break;
+      case Role.admin:
+        profile = await prisma.adminProfile.findUnique({ 
+          where: { userId: user.id },
+          select: {
+            id: true,
+            idProofUrl: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        });
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid user role" });
+    }
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    res.json({
+      message: "Profile retrieved successfully",
+      user,
+      profile,
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: "Server error retrieving profile." });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    // Note: With JWT, we can't invalidate the token on the server side
+    // The token will remain valid until it expires
+    // For better security, you might want to implement a token blacklist
+    
+    res.json({
+      message: "Logged out successfully",
+      // Instruct the client to remove the token
+      clearToken: true,
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ message: "Server error during logout." });
   }
 };

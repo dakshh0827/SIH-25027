@@ -1,16 +1,17 @@
-// routes/authRoutes.js
 import express from "express";
-import { register, login } from "../controllers/authController.js";
+import { register, login, getProfile, logout } from "../controllers/authController.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 import upload from "../middleware/multerMiddleware.js";
-import { validate } from "../middleware/validationMiddleware.js"; // Import validate middleware
+import { validate } from "../middleware/validationMiddleware.js";
 import {
   registerSchema,
   loginSchema,
   checkEmailSchema,
-} from "../utils/validationSchemas.js"; // Import schemas
+} from "../utils/validationSchemas.js";
 
 const router = express.Router();
 
+// Public routes
 router.post(
   "/register",
   upload.single("idProofUrl"),
@@ -18,17 +19,10 @@ router.post(
   register
 );
 
-router.post("/check-email", validate(checkEmailSchema), async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
-    res.status(200).json({ exists: !!user });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// Add validation to the login route as well
 router.post("/login", login);
+
+// Protected routes (require authentication)
+router.get("/profile", authenticateToken, getProfile);
+router.post("/logout", authenticateToken, logout);
 
 export default router;
