@@ -3,7 +3,11 @@ import express from "express";
 import { register, login } from "../controllers/authController.js";
 import upload from "../middleware/multerMiddleware.js";
 import { validate } from "../middleware/validationMiddleware.js"; // Import validate middleware
-import { registerSchema, loginSchema } from "../utils/validationSchemas.js"; // Import schemas
+import {
+  registerSchema,
+  loginSchema,
+  checkEmailSchema,
+} from "../utils/validationSchemas.js"; // Import schemas
 
 const router = express.Router();
 
