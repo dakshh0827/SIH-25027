@@ -253,10 +253,10 @@ const LandingPage = () => {
         setMounted(true);
         
         // Show welcome toast when component mounts
-        toast.success('🌿 Welcome to AyurTrace - Herb Provenance Platform!', {
-            duration: 3000,
-            position: 'top-right',
-        });
+        // toast.success('🌿 Welcome to AyurTrace - Herb Provenance Platform!', {
+        //     duration: 3000,
+        //     position: 'top-right',
+        // });
         
         // Apply green theme immediately and aggressively
         const immediateThemeApplication = () => {

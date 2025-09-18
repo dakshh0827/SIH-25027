@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './stores/useAuthStore';
 import LoginScreen from './pages/LoginScreen';
 import LandingPage from './pages/LandingPage';
-import AdminDashboard from './pages/AdminDashboard';
+// import AdminDashboard from './pages/AdminDashboard';
 import FarmerDashboard from './pages/FarmerDashboard';
 import ManufacturerDashboard from './pages/ManufacturerDashboard';
 import LabsDashboard from './pages/LabsDashboard';
@@ -85,9 +85,9 @@ const App = () => {
                     <Route path="/signup" element={<SignupForm />} />
                     
                     {/* Protected routes are now defined first */}
-                    {userType === 'admin' && (
-                        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    )}
+                    {/* {userType === 'admin' && (
+                        // <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                    )} */}
                     
                     {userType === 'farmer' && (
                         <Route path="/farmer" element={<FarmerDashboard />} />

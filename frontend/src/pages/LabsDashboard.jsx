@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronDown, Upload, History, User, TestTubeDiagonal, Calendar, FileText, Tag } from 'lucide-react';
+import { Upload, History, User, TestTubeDiagonal, Tag } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useReportStore } from '../stores/useReportStore';
 
-// Reusable UI components for a consistent look
+// Reusable UI components
 const Card = ({ children }) => (
   <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-lg p-6 shadow-2xl space-y-6">
     {children}
@@ -14,7 +15,7 @@ const SectionTitle = ({ title }) => (
 );
 
 // Form for uploading a new lab report
-const UploadLabReport = ({ onSubmit }) => {
+const UploadLabReport = ({ onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
     testType: '',
     testResult: '',
@@ -22,28 +23,27 @@ const UploadLabReport = ({ onSubmit }) => {
     status: 'final',
     manufacturingReportId: '',
     effectiveDate: '',
-    issuedDate: new Date().toISOString().split('T')[0], // Today's date
+    issuedDate: new Date().toISOString().split('T')[0],
     notes: '',
     regulatoryTags: [],
   });
 
   const [tagInput, setTagInput] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: files ? files[0] : value,
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: files ? files[0] : value 
     }));
   };
 
   const handleAddTag = (e) => {
     e.preventDefault();
     if (tagInput.trim() && !formData.regulatoryTags.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        regulatoryTags: [...prev.regulatoryTags, tagInput.trim()]
+      setFormData(prev => ({ 
+        ...prev, 
+        regulatoryTags: [...prev.regulatoryTags, tagInput.trim()] 
       }));
       setTagInput('');
       toast.success(`🏷️ Tag "${tagInput.trim()}" added!`, { duration: 2000 });
@@ -53,9 +53,9 @@ const UploadLabReport = ({ onSubmit }) => {
   };
 
   const handleRemoveTag = (tagToRemove) => {
-    setFormData(prev => ({
-      ...prev,
-      regulatoryTags: prev.regulatoryTags.filter(tag => tag !== tagToRemove)
+    setFormData(prev => ({ 
+      ...prev, 
+      regulatoryTags: prev.regulatoryTags.filter(tag => tag !== tagToRemove) 
     }));
     toast.success(`🗑️ Tag "${tagToRemove}" removed!`, { duration: 2000 });
   };
@@ -96,50 +96,32 @@ const UploadLabReport = ({ onSubmit }) => {
       return;
     }
 
-    setIsSubmitting(true);
-    const loadingToast = toast.loading('🧪 Submitting lab report...', {
-      position: 'top-right',
-    });
-
-    // Simulate API call
-    setTimeout(() => {
-      try {
-        console.log("Submitting new lab report:", formData);
-        onSubmit(formData);
-        
-        toast.dismiss(loadingToast);
-        toast.success(`✅ Lab report for ${formData.testType} submitted successfully!`, {
-          duration: 4000,
-        });
-        
-        // Reset form
-        setFormData({
-          testType: '',
-          testResult: '',
-          labReportFile: null,
-          status: 'final',
-          manufacturingReportId: '',
-          effectiveDate: '',
-          issuedDate: new Date().toISOString().split('T')[0],
-          notes: '',
-          regulatoryTags: [],
-        });
-        setTagInput('');
-
-        // Reset file input manually
-        const fileInput = document.getElementById('labReportFile');
-        if (fileInput) {
-          fileInput.value = '';
-        }
-      } catch (error) {
-        toast.dismiss(loadingToast);
-        toast.error('❌ Failed to submit lab report. Please try again.', {
-          duration: 4000,
-        });
-      } finally {
-        setIsSubmitting(false);
+    try {
+      await onSubmit(formData);
+      
+      // Reset form
+      setFormData({
+        testType: '',
+        testResult: '',
+        labReportFile: null,
+        status: 'final',
+        manufacturingReportId: '',
+        effectiveDate: '',
+        issuedDate: new Date().toISOString().split('T')[0],
+        notes: '',
+        regulatoryTags: [],
+      });
+      setTagInput('');
+      
+      // Reset file input manually
+      const fileInput = document.getElementById('labReportFile');
+      if (fileInput) {
+        fileInput.value = '';
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Error submitting lab report:', error);
+      toast.error('Failed to submit lab report. Please try again.', { duration: 4000 });
+    }
   };
 
   const handleFileChange = (e) => {
@@ -150,25 +132,18 @@ const UploadLabReport = ({ onSubmit }) => {
       const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
       
       if (file.size > maxSize) {
-        toast.error('📁 File size too large. Please select a file under 10MB.', {
-          duration: 4000,
-        });
+        toast.error('📁 File size too large. Please select a file under 10MB.', { duration: 4000 });
         e.target.value = '';
         return;
       }
 
       if (!allowedTypes.includes(fileExtension)) {
-        toast.error('📁 Invalid file type. Please select a PDF, DOC, or DOCX file.', {
-          duration: 4000,
-        });
+        toast.error('📁 Invalid file type. Please select a PDF, DOC, or DOCX file.', { duration: 4000 });
         e.target.value = '';
         return;
       }
-      
-      toast.success(`📄 File "${file.name}" selected successfully!`, {
-        duration: 2000,
-      });
-      
+
+      toast.success(`📄 File "${file.name}" selected successfully!`, { duration: 2000 });
       setFormData(prev => ({ ...prev, labReportFile: file }));
     }
   };
@@ -189,8 +164,8 @@ const UploadLabReport = ({ onSubmit }) => {
           value={formData.manufacturingReportId} 
           onChange={handleChange} 
           required 
-          disabled={isSubmitting}
-          placeholder="e.g., MFG-RPT-2024-001"
+          disabled={isSubmitting} 
+          placeholder="e.g., MFG-RPT-2024-001" 
           className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
@@ -206,7 +181,7 @@ const UploadLabReport = ({ onSubmit }) => {
           value={formData.testType} 
           onChange={handleChange} 
           required 
-          disabled={isSubmitting}
+          disabled={isSubmitting} 
           className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="">Select Test Type</option>
@@ -231,9 +206,9 @@ const UploadLabReport = ({ onSubmit }) => {
           value={formData.testResult} 
           onChange={handleChange} 
           required 
-          disabled={isSubmitting}
-          rows="4"
-          placeholder="Summary of test results and findings..."
+          disabled={isSubmitting} 
+          rows="4" 
+          placeholder="Summary of test results and findings..." 
           className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
@@ -249,7 +224,7 @@ const UploadLabReport = ({ onSubmit }) => {
           value={formData.status} 
           onChange={handleChange} 
           required 
-          disabled={isSubmitting}
+          disabled={isSubmitting} 
           className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="registered">Registered</option>
@@ -261,7 +236,6 @@ const UploadLabReport = ({ onSubmit }) => {
 
       {/* Date Fields Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Effective Date Field */}
         <div>
           <label htmlFor="effectiveDate" className="block text-sm font-medium text-slate-300 mb-1">
             Test Performed Date <span className="text-red-400">*</span>
@@ -273,13 +247,11 @@ const UploadLabReport = ({ onSubmit }) => {
             value={formData.effectiveDate} 
             onChange={handleChange} 
             required 
-            disabled={isSubmitting}
-            max={new Date().toISOString().split('T')[0]} // Cannot be in future
+            disabled={isSubmitting} 
+            max={new Date().toISOString().split('T')[0]} 
             className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
           />
         </div>
-
-        {/* Issued Date Field */}
         <div>
           <label htmlFor="issuedDate" className="block text-sm font-medium text-slate-300 mb-1">
             Report Issued Date <span className="text-red-400">*</span>
@@ -291,8 +263,8 @@ const UploadLabReport = ({ onSubmit }) => {
             value={formData.issuedDate} 
             onChange={handleChange} 
             required 
-            disabled={isSubmitting}
-            max={new Date().toISOString().split('T')[0]} // Cannot be in future
+            disabled={isSubmitting} 
+            max={new Date().toISOString().split('T')[0]} 
             className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
           />
         </div>
@@ -308,9 +280,9 @@ const UploadLabReport = ({ onSubmit }) => {
           id="notes" 
           value={formData.notes} 
           onChange={handleChange} 
-          disabled={isSubmitting}
-          rows="3"
-          placeholder="Any additional observations or comments..."
+          disabled={isSubmitting} 
+          rows="3" 
+          placeholder="Any additional observations or comments..." 
           className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
@@ -325,10 +297,10 @@ const UploadLabReport = ({ onSubmit }) => {
             type="text" 
             id="tagInput" 
             value={tagInput} 
-            onChange={(e) => setTagInput(e.target.value)}
-            disabled={isSubmitting}
-            placeholder="e.g., NABL, ISO-17025, AYUSH-Approved"
-            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            onChange={(e) => setTagInput(e.target.value)} 
+            disabled={isSubmitting} 
+            placeholder="e.g., NABL, ISO-17025, AYUSH-Approved" 
+            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-md text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 handleAddTag(e);
@@ -337,8 +309,8 @@ const UploadLabReport = ({ onSubmit }) => {
           />
           <button 
             type="button" 
-            onClick={handleAddTag}
-            disabled={isSubmitting || !tagInput.trim()}
+            onClick={handleAddTag} 
+            disabled={isSubmitting || !tagInput.trim()} 
             className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 rounded-md hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Tag className="h-5 w-5" />
@@ -350,8 +322,8 @@ const UploadLabReport = ({ onSubmit }) => {
           <div className="mt-3 flex flex-wrap gap-2">
             {formData.regulatoryTags.map((tag, index) => (
               <span 
-                key={index}
-                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 rounded-full text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200"
+                key={index} 
+                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 rounded-full text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200" 
                 onClick={() => !isSubmitting && handleRemoveTag(tag)}
               >
                 {tag}
@@ -374,7 +346,7 @@ const UploadLabReport = ({ onSubmit }) => {
           accept=".pdf,.doc,.docx" 
           onChange={handleFileChange} 
           required 
-          disabled={isSubmitting}
+          disabled={isSubmitting} 
           className="mt-1 block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] file:transition-colors file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
         />
         <p className="mt-2 text-xs text-slate-400">
@@ -389,10 +361,10 @@ const UploadLabReport = ({ onSubmit }) => {
 
       <button 
         type="submit" 
-        disabled={isSubmitting}
+        disabled={isSubmitting} 
         className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold rounded-md transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Upload className="h-4 w-4 mr-2" /> 
+        <Upload className="h-4 w-4 mr-2" />
         {isSubmitting ? 'Submitting...' : 'Submit Lab Report'}
       </button>
     </form>
@@ -431,27 +403,43 @@ const LabHistory = ({ reports }) => {
           <table className="min-w-full divide-y divide-slate-700">
             <thead>
               <tr className="bg-slate-800/50 text-slate-400">
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Test Type</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Issued Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">MFG Report ID</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Test Type
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Issued Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  MFG Report ID
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
               {reports.map((report, index) => (
                 <tr 
-                  key={index} 
+                  key={report.id || index} 
                   className="hover:bg-slate-800/50 transition-colors duration-200"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{report.testType}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {report.testType}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(report.status)}`}>
                       {report.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{report.issuedDate}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">{report.manufacturingReportId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {report.issuedDate}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">
+                    {report.manufacturingReportId}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button 
                       onClick={() => handleReportClick(report)}
@@ -488,30 +476,42 @@ const LabProfile = ({ profile }) => (
         </div>
         <div>
           <h4 className="text-xl font-bold text-white">{profile.labName}</h4>
-          <p className="text-sm text-slate-400">Authorized Representative: {profile.authorizedRepresentative}</p>
+          <p className="text-sm text-slate-400">
+            Authorized Representative: {profile.authorizedRepresentative}
+          </p>
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <p className="text-sm text-slate-400 font-medium">NABL Accreditation Number</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">{profile.nablAccreditationNumber}</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
+            {profile.nablAccreditationNumber}
+          </p>
         </div>
         <div className="space-y-2">
           <p className="text-sm text-slate-400 font-medium">PAN</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">{profile.pan}</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
+            {profile.pan}
+          </p>
         </div>
         <div className="space-y-2">
           <p className="text-sm text-slate-400 font-medium">GSTIN</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">{profile.gstin}</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
+            {profile.gstin}
+          </p>
         </div>
         <div className="space-y-2">
           <p className="text-sm text-slate-400 font-medium">Scope of NABL Accreditation</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">{profile.scopeOfNablAccreditation}</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
+            {profile.scopeOfNablAccreditation}
+          </p>
         </div>
         <div className="md:col-span-2 space-y-2">
           <p className="text-sm text-slate-400 font-medium">Registered Address</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">{profile.registeredAddress}</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 rounded-md">
+            {profile.registeredAddress}
+          </p>
         </div>
       </div>
     </div>
@@ -532,17 +532,41 @@ const LabsDashboard = () => {
     authorizedRepresentative: "Dr. Suman Verma",
   });
 
-  const handleUploadSubmit = (newReport) => {
-    const reportWithDate = {
-      ...newReport,
-      identifier: `LAB-RPT-${Date.now()}`, // Better unique identifier
-    };
-    setLabReports(prev => [reportWithDate, ...prev]);
-    
-    // After successful submission, automatically switch to history view
-    setTimeout(() => {
-      setActiveSection('history');
-    }, 2000); // Small delay to show success message
+  // Use the useReportStore
+  const { isSubmitting, submitReport } = useReportStore();
+
+  const handleUploadSubmit = async (formData) => {
+    try {
+      const newReport = await submitReport({ 
+        reportType: 'lab', 
+        data: formData 
+      });
+      
+      if (newReport) {
+        setLabReports(prev => [
+          { 
+            ...newReport, 
+            id: Date.now(), // Add unique ID
+            date: new Date().toLocaleDateString() 
+          }, 
+          ...prev
+        ]);
+        
+        // Switch to history view after successful submission
+        setTimeout(() => {
+          setActiveSection('history');
+        }, 1000);
+        
+        toast.success(`✅ Lab report for ${formData.testType} submitted successfully!`, {
+          duration: 4000,
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      toast.error('Failed to submit lab report. Please try again.', {
+        duration: 4000,
+      });
+    }
   };
 
   const handleSectionChange = (section) => {
@@ -552,7 +576,12 @@ const LabsDashboard = () => {
   const renderSection = () => {
     switch (activeSection) {
       case 'upload':
-        return <UploadLabReport onSubmit={handleUploadSubmit} />;
+        return (
+          <UploadLabReport 
+            onSubmit={handleUploadSubmit} 
+            isSubmitting={isSubmitting} 
+          />
+        );
       case 'history':
         return <LabHistory reports={labReports} />;
       case 'profile':
@@ -581,7 +610,9 @@ const LabsDashboard = () => {
         <nav className="flex items-center justify-between py-6 mb-8 border-b border-slate-700/50">
           <div>
             <h1 className="text-3xl font-bold text-white">Laboratory Dashboard</h1>
-            <p className="text-slate-400 text-sm mt-1">Manage lab reports and testing documentation</p>
+            <p className="text-slate-400 text-sm mt-1">
+              Manage lab reports and testing documentation
+            </p>
           </div>
           <div className="relative">
             <button

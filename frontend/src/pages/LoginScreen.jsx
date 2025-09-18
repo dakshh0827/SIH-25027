@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import toast from 'react-hot-toast'; // Removed Toaster import
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 // Zod schema for login form validation
@@ -26,10 +26,10 @@ const LoginScreen = () => {
   });
 
   const onSubmit = async (data) => {
-    const loadingToast = toast.loading('🔐 Signing you in...', {
-      position: 'top-right',
-    });
+    // Clear any existing toasts first
+    toast.dismiss();
     
+    // const loadingToast = toast.loading('🔐 Signing you in...');
     setLoading(true);
 
     try {
@@ -49,15 +49,18 @@ const LoginScreen = () => {
       const { token, user } = await res.json();
       
       // IMPORTANT: Dismiss loading toast first
-      toast.dismiss(loadingToast);
+      // toast.dismiss(loadingToast);
       
       // Update the Zustand store with the user data and token
-      // This will show the success toast from useAuthStore
       login(user, token);
 
-      // REMOVED: Duplicate success toast to prevent triple toasts
+      // Show success message
+      // toast.success(`✅ Welcome back, ${user.name || user.email}! Redirecting to your dashboard...`);
       
       setTimeout(() => {
+        // Clear all toasts before navigation
+        toast.dismiss();
+        
         // Redirect based on the user's role from the API response
         switch (user.role.toLowerCase()) {
           case 'fpo':
@@ -76,49 +79,39 @@ const LoginScreen = () => {
             break;
           default:
             console.error("Unknown role, cannot redirect.");
-            toast.error("❌ Unknown user role. Please contact support.", {
-              duration: 4000,
-            });
+            toast.error("❌ Unknown user role. Please contact support.");
             break;
         }
       }, 1500);
       
     } catch (error) {
       // IMPORTANT: Always dismiss loading toast
-      toast.dismiss(loadingToast);
+      // toast.dismiss(loadingToast);
       setLoading(false);
       
       console.error('Login error:', error);
       
-      // Specific error messages with proper duration
+      // Clear any existing toasts before showing error
+      toast.dismiss();
+      
+      // Specific error messages
       if (error.message.includes('Invalid credentials') || error.message.includes('password')) {
-        toast.error('❌ Invalid email or password. Please check your credentials and try again.', {
-          duration: 4000,
-        });
+        toast.error('❌ Invalid email or password. Please check your credentials and try again.');
       } else if (error.message.includes('not found')) {
-        toast.error('❌ Account not found. Would you like to create a new account?', {
-          duration: 4000,
-        });
+        toast.error('❌ Account not found. Would you like to create a new account?');
       } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        toast.error('❌ Network error. Please check your connection and try again.', {
-          duration: 4000,
-        });
+        toast.error('❌ Network error. Please check your connection and try again.');
       } else if (error.message.includes('suspended') || error.message.includes('blocked')) {
-        toast.error('❌ Your account has been suspended. Please contact support.', {
-          duration: 5000,
-        });
+        toast.error('❌ Your account has been suspended. Please contact support.');
       } else {
-        toast.error('❌ Login failed. Please try again.', {
-          duration: 4000,
-        });
+        toast.error('❌ Login failed. Please try again.');
       }
     }
   };
 
   const handleSignup = () => {
-    const loadingToast = toast.loading('Redirecting to signup...', {
-      duration: 1000,
-    });
+    toast.dismiss(); // Clear existing toasts
+    const loadingToast = toast.loading('Redirecting to signup...');
     
     setTimeout(() => {
       toast.dismiss(loadingToast);
@@ -127,40 +120,73 @@ const LoginScreen = () => {
   };
 
   const handleForgotPassword = () => {
-    toast.error('🔧 Password reset feature is not yet implemented.', { 
-      duration: 3000 
-    });
+    toast.dismiss(); // Clear existing toasts
+    toast.error('🔧 Password reset feature is not yet implemented.');
   };
 
-  // Show validation errors as toasts
+  // Show validation errors as toasts with proper cleanup
   React.useEffect(() => {
     if (errors.email) {
-      toast.error(`❌ ${errors.email.message}`, { 
-        duration: 3000 
-      });
+      toast.dismiss(); // Clear existing toasts
+      toast.error(`❌ ${errors.email.message}`);
     }
     if (errors.password) {
-      toast.error(`❌ ${errors.password.message}`, { 
-        duration: 3000 
-      });
+      toast.dismiss(); // Clear existing toasts
+      toast.error(`❌ ${errors.password.message}`);
     }
   }, [errors]);
 
-  // Welcome toast when component mounts
+  // Welcome toast when component mounts - FIXED DURATION
   React.useEffect(() => {
     const welcomeTimer = setTimeout(() => {
       toast('👋 Welcome back! Please sign in to continue.', {
-        duration: 3000,
         icon: '🔐',
+        duration: 4000, // 4 seconds duration
       });
     }, 500);
 
-    return () => clearTimeout(welcomeTimer);
+    // Cleanup function to clear toasts when component unmounts
+    return () => {
+      clearTimeout(welcomeTimer);
+      toast.dismiss(); // Clear all toasts on unmount
+    };
   }, []);
+
+  // Handle input focus with better toast management
+  const handleEmailFocus = () => {
+    // Only dismiss error toasts, not loading toasts
+    const currentToasts = document.querySelectorAll('[data-hot-toast]');
+    currentToasts.forEach(toastEl => {
+      if (toastEl.textContent?.includes('❌')) {
+        const toastId = toastEl.getAttribute('data-hot-toast');
+        if (toastId) toast.dismiss(toastId);
+      }
+    });
+    
+    toast('📧 Enter your registered email address', {
+      icon: '💡',
+      duration: 2000,
+    });
+  };
+
+  const handlePasswordFocus = () => {
+    // Only dismiss error toasts, not loading toasts
+    const currentToasts = document.querySelectorAll('[data-hot-toast]');
+    currentToasts.forEach(toastEl => {
+      if (toastEl.textContent?.includes('❌')) {
+        const toastId = toastEl.getAttribute('data-hot-toast');
+        if (toastId) toast.dismiss(toastId);
+      }
+    });
+    
+    toast('🔒 Enter your account password', {
+      icon: '💡',
+      duration: 2000,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      {/* REMOVED: <Toaster /> - This was causing conflicts */}
       <div className="max-w-xl w-full mx-4">
         <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 p-8 shadow-2xl">
           <div className="flex items-center justify-between mb-8">
@@ -176,7 +202,7 @@ const LoginScreen = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
                 Email Address
               </label>
               <input
@@ -184,28 +210,23 @@ const LoginScreen = () => {
                 id="email"
                 {...register('email')}
                 disabled={isSubmitting}
-                onFocus={() => {
-                  toast.dismiss(); // Clear any existing error toasts
-                  toast('📧 Enter your registered email address', {
-                    duration: 2000,
-                    icon: '💡',
-                  });
-                }}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                onFocus={handleEmailFocus}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Enter your email"
               />
             </div>
             
             {/* Password Field */}
             <div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-1">
                 <label htmlFor="password" className="block text-sm font-medium text-slate-300">
                   Password
                 </label>
                 <button
                   type="button"
                   onClick={handleForgotPassword}
-                  className="text-xs text-[#34d399] hover:text-[#10b981] transition-colors duration-200"
+                  disabled={isSubmitting}
+                  className="text-xs text-[#34d399] hover:text-[#10b981] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Forgot password?
                 </button>
@@ -215,14 +236,8 @@ const LoginScreen = () => {
                 id="password"
                 {...register('password')}
                 disabled={isSubmitting}
-                onFocus={() => {
-                  toast.dismiss();
-                  toast('🔒 Enter your account password', {
-                    duration: 2000,
-                    icon: '💡',
-                  });
-                }}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                onFocus={handlePasswordFocus}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Enter your password"
               />
             </div>
@@ -235,7 +250,7 @@ const LoginScreen = () => {
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent mr-2"></div>
                   Signing In...
                 </>
               ) : (
