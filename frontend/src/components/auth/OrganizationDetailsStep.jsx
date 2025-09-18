@@ -59,12 +59,15 @@ const OrganizationDetailsStep = ({
     reset();
   }, [orgType, reset]);
 
-  // Show validation error toasts
+  // Show validation error toasts - only show first error
   useEffect(() => {
     if (Object.keys(errors).length > 0) {
+      // Clear all existing toasts first
+      toast.dismiss();
+      
       const firstError = Object.values(errors)[0]?.message;
       if (firstError) {
-        toast.error(firstError, {
+        toast.error(`❌ ${firstError}`, {
           duration: 3000,
         });
       }
@@ -72,6 +75,9 @@ const OrganizationDetailsStep = ({
   }, [errors]);
 
   const handleOrgTypeChange = (type) => {
+    // Clear all existing toasts first
+    toast.dismiss();
+    
     const typeNames = {
       'farmer': 'Farmer/FPO',
       'manufacturer': 'Manufacturer',
@@ -79,51 +85,41 @@ const OrganizationDetailsStep = ({
     };
     
     setOrgType(type);
-    toast.success(`Switched to ${typeNames[type]} form`, {
+    toast.success(`✅ Switched to ${typeNames[type]} form`, {
       duration: 2000,
     });
   };
 
   const onSubmit = (data) => {
-    // Create a loading toast
-    const loadingToast = toast.loading('Completing your signup...', {
-      position: 'top-right',
-    });
-
-    try {
-      // Simulate form processing delay
-      setTimeout(() => {
-        const orgNames = {
-          'farmer': 'Farmer/FPO',
-          'manufacturer': 'Manufacturer', 
-          'lab': 'Laboratory'
-        };
-
-        toast.dismiss(loadingToast);
-        toast.success(`${orgNames[orgType]} registration completed successfully!`, {
-          duration: 4000,
-          position: 'top-right',
-        });
-        
-        // This is the key change: we now set the 'role' based on the submitted form type
-        onNext({ ...formData, ...data, role: orgType });
-      }, 1500);
-    } catch (error) {
-      toast.dismiss(loadingToast);
-      toast.error('Registration failed. Please try again.', {
-        duration: 4000,
-        position: 'top-right',
-      });
-    }
+    // Clear all existing toasts first
+    toast.dismiss();
+    
+    // REMOVED: Premature success toast - let the parent component handle the actual submission
+    // This is the key change: we now set the 'role' based on the submitted form type
+    onNext({ ...formData, ...data, role: orgType });
   };
 
   const handleBack = () => {
-    toast.loading('Going back to previous step...', {
+    // Clear all existing toasts first
+    toast.dismiss();
+    
+    toast.loading('⬅️ Going back to previous step...', {
       duration: 1000,
     });
     setTimeout(() => {
       onBack();
     }, 500);
+  };
+
+  const handleInputFocus = () => {
+    // Only dismiss error toasts on focus, not loading toasts
+    const currentToasts = document.querySelectorAll('[data-hot-toast]');
+    currentToasts.forEach(toastEl => {
+      if (toastEl.textContent?.includes('❌')) {
+        const toastId = toastEl.getAttribute('data-hot-toast');
+        if (toastId) toast.dismiss(toastId);
+      }
+    });
   };
 
   const renderForm = () => {
@@ -133,87 +129,87 @@ const OrganizationDetailsStep = ({
           <div className="space-y-4">
             {/* FPO Name */}
             <div>
-              <label htmlFor="fpoName" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="fpoName" className="block text-sm font-medium text-slate-300 mb-1">
                 FPO Name
               </label>
               <input
                 type="text"
                 id="fpoName"
                 {...register("fpoName")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.fpoName && <p className="mt-1 text-sm text-red-400">{errors.fpoName.message}</p>}
             </div>
             {/* Registration Number */}
             <div>
-              <label htmlFor="regNumber" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="regNumber" className="block text-sm font-medium text-slate-300 mb-1">
                 Registration Number
               </label>
               <input
                 type="text"
                 id="regNumber"
                 {...register("regNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.regNumber && <p className="mt-1 text-sm text-red-400">{errors.regNumber.message}</p>}
             </div>
             {/* PAN */}
             <div>
-              <label htmlFor="pan" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="pan" className="block text-sm font-medium text-slate-300 mb-1">
                 PAN
               </label>
               <input
                 type="text"
                 id="pan"
                 {...register("pan")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
                 placeholder="e.g., ABCDE1234F"
               />
               {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
             </div>
             {/* GSTIN */}
             <div>
-              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300 mb-1">
                 GSTIN
               </label>
               <input
                 type="text"
                 id="gstin"
                 {...register("gstin")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
                 placeholder="e.g., 22ABCDE1234F1Z5"
               />
               {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
             </div>
             {/* Registered Address */}
             <div>
-              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300 mb-1">
                 Registered Address
               </label>
               <input
                 type="text"
                 id="registeredAddress"
                 {...register("registeredAddress")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
             </div>
             {/* Authorized Representative */}
             <div>
-              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300 mb-1">
                 Authorized Representative
               </label>
               <input
                 type="text"
                 id="authorizedRepresentative"
                 {...register("authorizedRepresentative")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
             </div>
@@ -224,101 +220,95 @@ const OrganizationDetailsStep = ({
           <div className="space-y-4">
             {/* Manufacturer Name */}
             <div>
-              <label htmlFor="manufacturerName" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="manufacturerName" className="block text-sm font-medium text-slate-300 mb-1">
                 Manufacturer Name
               </label>
               <input
                 type="text"
                 id="manufacturerName"
                 {...register("manufacturerName")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.manufacturerName && <p className="mt-1 text-sm text-red-400">{errors.manufacturerName.message}</p>}
             </div>
-            {/* AYUSH License Number */}
             <div>
-              <label htmlFor="ayushLicenseNumber" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="ayushLicenseNumber" className="block text-sm font-medium text-slate-300 mb-1">
                 AYUSH License Number
               </label>
               <input
                 type="text"
                 id="ayushLicenseNumber"
                 {...register("ayushLicenseNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.ayushLicenseNumber && <p className="mt-1 text-sm text-red-400">{errors.ayushLicenseNumber.message}</p>}
             </div>
-            {/* Registration Number */}
             <div>
-              <label htmlFor="regNumber" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="regNumber" className="block text-sm font-medium text-slate-300 mb-1">
                 Registration Number
               </label>
               <input
                 type="text"
                 id="regNumber"
                 {...register("regNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.regNumber && <p className="mt-1 text-sm text-red-400">{errors.regNumber.message}</p>}
             </div>
-            {/* PAN */}
             <div>
-              <label htmlFor="pan" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="pan" className="block text-sm font-medium text-slate-300 mb-1">
                 PAN
               </label>
               <input
                 type="text"
                 id="pan"
                 {...register("pan")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
                 placeholder="e.g., ABCDE1234F"
               />
               {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
             </div>
-            {/* GSTIN */}
             <div>
-              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300 mb-1">
                 GSTIN
               </label>
               <input
                 type="text"
                 id="gstin"
                 {...register("gstin")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
                 placeholder="e.g., 22ABCDE1234F1Z5"
               />
               {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
             </div>
-            {/* Registered Address */}
             <div>
-              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300 mb-1">
                 Registered Address
               </label>
               <input
                 type="text"
                 id="registeredAddress"
                 {...register("registeredAddress")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
             </div>
-            {/* Authorized Representative */}
             <div>
-              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300 mb-1">
                 Authorized Representative
               </label>
               <input
                 type="text"
                 id="authorizedRepresentative"
                 {...register("authorizedRepresentative")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
             </div>
@@ -329,101 +319,95 @@ const OrganizationDetailsStep = ({
           <div className="space-y-4">
             {/* Lab Name */}
             <div>
-              <label htmlFor="labName" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="labName" className="block text-sm font-medium text-slate-300 mb-1">
                 Lab Name
               </label>
               <input
                 type="text"
                 id="labName"
                 {...register("labName")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.labName && <p className="mt-1 text-sm text-red-400">{errors.labName.message}</p>}
             </div>
-            {/* NABL Accreditation Number */}
             <div>
-              <label htmlFor="nablAccreditationNumber" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="nablAccreditationNumber" className="block text-sm font-medium text-slate-300 mb-1">
                 NABL Accreditation Number
               </label>
               <input
                 type="text"
                 id="nablAccreditationNumber"
                 {...register("nablAccreditationNumber")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.nablAccreditationNumber && <p className="mt-1 text-sm text-red-400">{errors.nablAccreditationNumber.message}</p>}
             </div>
-            {/* Scope of NABL Accreditation */}
             <div>
-              <label htmlFor="scopeOfNablAccreditation" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="scopeOfNablAccreditation" className="block text-sm font-medium text-slate-300 mb-1">
                 Scope of NABL Accreditation
               </label>
               <input
                 type="text"
                 id="scopeOfNablAccreditation"
                 {...register("scopeOfNablAccreditation")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.scopeOfNablAccreditation && <p className="mt-1 text-sm text-red-400">{errors.scopeOfNablAccreditation.message}</p>}
             </div>
-            {/* PAN */}
             <div>
-              <label htmlFor="pan" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="pan" className="block text-sm font-medium text-slate-300 mb-1">
                 PAN
               </label>
               <input
                 type="text"
                 id="pan"
                 {...register("pan")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
                 placeholder="e.g., ABCDE1234F"
               />
               {errors.pan && <p className="mt-1 text-sm text-red-400">{errors.pan.message}</p>}
             </div>
-            {/* GSTIN */}
             <div>
-              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="gstin" className="block text-sm font-medium text-slate-300 mb-1">
                 GSTIN
               </label>
               <input
                 type="text"
                 id="gstin"
                 {...register("gstin")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
                 placeholder="e.g., 22ABCDE1234F1Z5"
               />
               {errors.gstin && <p className="mt-1 text-sm text-red-400">{errors.gstin.message}</p>}
             </div>
-            {/* Registered Address */}
             <div>
-              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="registeredAddress" className="block text-sm font-medium text-slate-300 mb-1">
                 Registered Address
               </label>
               <input
                 type="text"
                 id="registeredAddress"
                 {...register("registeredAddress")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.registeredAddress && <p className="mt-1 text-sm text-red-400">{errors.registeredAddress.message}</p>}
             </div>
-            {/* Authorized Representative */}
             <div>
-              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300">
+              <label htmlFor="authorizedRepresentative" className="block text-sm font-medium text-slate-300 mb-1">
                 Authorized Representative
               </label>
               <input
                 type="text"
                 id="authorizedRepresentative"
                 {...register("authorizedRepresentative")}
-                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-                onFocus={() => toast.dismiss()}
+                className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none"
+                onFocus={handleInputFocus}
               />
               {errors.authorizedRepresentative && <p className="mt-1 text-sm text-red-400">{errors.authorizedRepresentative.message}</p>}
             </div>

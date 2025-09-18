@@ -5,21 +5,26 @@ import toast from 'react-hot-toast';
 const RoleSelectionStep = ({ onSelectRole, onBack }) => {
   
   const handleRoleSelection = (role) => {
+    // Clear all existing toasts first
+    toast.dismiss();
+    
     const roleNames = {
       'admin': 'Administrator',
       'user': 'Supply Chain User'
     };
     
-    toast.success(`${roleNames[role]} role selected!`, {
+    toast.success(`✅ ${roleNames[role]} role selected!`, {
       duration: 2000,
-      position: 'top-right',
     });
     
     onSelectRole(role);
   };
 
   const handleBack = () => {
-    toast.loading('Going back to previous step...', {
+    // Clear all existing toasts first
+    toast.dismiss();
+    
+    toast.loading('⬅️ Going back to previous step...', {
       duration: 1000,
     });
     setTimeout(() => {

@@ -484,18 +484,18 @@ const FarmerDashboard = () => {
   const { isSubmitting, submitReport } = useReportStore();
 
   // Welcome toast when component mounts - FIXED DURATION
-  React.useEffect(() => {
-    const welcomeTimer = setTimeout(() => {
-      toast('🌾 Welcome to your Farmer Dashboard!', {
-        icon: '👋',
-        duration: 4000, // 4 seconds duration
-      });
-    }, 800);
+  // React.useEffect(() => {
+  //   // const welcomeTimer = setTimeout(() => {
+  //   //   toast('🌾 Welcome to your Farmer Dashboard!', {
+  //   //     icon: '👋',
+  //   //     duration: 4000, // 4 seconds duration
+  //   //   });
+  //   }, 800);
 
-    return () => {
-      clearTimeout(welcomeTimer);
-    };
-  }, []);
+  //   return () => {
+  //     clearTimeout(welcomeTimer);
+  //   };
+  // }, []);
 
   const handleUploadSubmit = async (formData) => {
     try {

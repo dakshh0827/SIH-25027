@@ -42,7 +42,7 @@ model AdminProfile {
 model FarmerProfile {
   id                       String    @id @default(auto()) @map("_id") @db.ObjectId
   fpoName                  String
-  registrationNumber       String    @unique
+  regNumber       String    @unique
   pan                      String    @unique
   gstin                    String    @unique
   registeredAddress        String

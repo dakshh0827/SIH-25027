@@ -9,6 +9,7 @@ import OrganizationDetailsStep from './OrganizationDetailsStep';
 
 const SignupForm = () => {
     const [step, setStep] = useState(1);
+    const [shouldResetForm, setShouldResetForm] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -34,24 +35,55 @@ const SignupForm = () => {
     });
 
     const navigate = (path) => {
+        // Clear all toasts before navigation
+        toast.dismiss();
         // This would be replaced with actual navigation logic
         window.location.href = path;
     };
+    
     const { login, setLoading, handleApiError, showSuccess, showInfo } = useAuthStore();
+
+    const resetFormToStart = () => {
+        // Clear all toasts first
+        toast.dismiss();
+        
+        // Reset form data
+        setFormData({
+            name: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            role: '',
+            govtId: '',
+            govtIdImage: null,
+            metamaskAccount: '',
+            fpoName: '',
+            regNumber: '',
+            pan: '',
+            gstin: '',
+            registeredAddress: '',
+            authorizedRepresentative: '',
+            manufacturerName: '',
+            ayushLicenseNumber: '',
+            labName: '',
+            nablAccreditationNumber: '',
+            scopeOfNablAccreditation: '',
+        });
+        
+        // Go back to step 1
+        setStep(1);
+        
+        // Trigger form reset in PersonalDetailsStep
+        setShouldResetForm(true);
+        
+        // Reset the trigger after a short delay
+        setTimeout(() => setShouldResetForm(false), 100);
+    };
 
     const handleNext = (newData) => {
         try {
             const updatedData = { ...formData, ...newData };
             setFormData(updatedData);
-
-            // Show progress toast
-            if (step === 1) {
-                showInfo('Personal details saved. Please select your role.');
-            } else if (step === 2 && updatedData.role === 'admin') {
-                showInfo('Role selected. Please complete admin verification details.');
-            } else if (step === 2 && updatedData.role === 'user') {
-                showInfo('Role selected. Please provide organization details.');
-            }
 
             if (updatedData.role === 'admin' && step === 2) {
                 handleSubmit(updatedData);
@@ -64,22 +96,29 @@ const SignupForm = () => {
             }
         } catch (error) {
             console.error('Error in handleNext:', error);
-            toast.error('Error processing form data. Please try again.');
+            toast.error('❌ Error processing form data. Please try again.', {
+                duration: 4000,
+                id: 'form-process-error'
+            });
         }
     };
 
     const handleBack = () => {
         setStep(prev => prev - 1);
-        toast('Returning to previous step...', {
+        toast('⬅️ Returning to previous step...', {
             duration: 1500,
-            icon: '⬅️',
+            id: 'step-back'
         });
     };
 
     const handleSubmit = async (finalData) => {
+        // Clear all existing toasts before starting submission
+        toast.dismiss();
+        
         // Show loading toast
-        const loadingToast = toast.loading('Creating your account...', {
-            position: 'top-center',
+        const loadingToast = toast.loading('🔄 Creating your account...', {
+            duration: Infinity,
+            id: 'signup-loading'
         });
         
         setLoading(true);
@@ -112,57 +151,86 @@ const SignupForm = () => {
           // Dismiss loading toast
           toast.dismiss(loadingToast);
           
+          // Show success message
+          const successToast = toast.success('🎉 Account created successfully! Redirecting to dashboard...', {
+            duration: 3000,
+            id: 'signup-success'
+          });
+          
           // Use the login action to update the store and save the token
           login(user, token);
           
-          // Show success message
-          showSuccess('Account created successfully! Redirecting to dashboard...');
-          
-          // Redirect based on the user's role after a short delay
+          // Redirect based on the user's role after success toast completes
           setTimeout(() => {
-            switch (user.role.toLowerCase()) {
-              case 'fpo':
-                navigate("/farmer");
-                break;
-              case 'manufacturer':
-                navigate("/manufacturer");
-                break;
-              case 'laboratory':
-                navigate("/labs");
-                break;
-              case 'admin':
-                navigate("/admin-dashboard");
-                break;
-              default:
-                console.error("Unknown role, cannot redirect.");
-                toast.error("Unknown user role. Please contact support.");
-                break;
-            }
-          }, 1000);
+            // Dismiss the success toast before navigation
+            toast.dismiss(successToast);
+            
+            // Small delay to ensure toast is cleared
+            setTimeout(() => {
+              switch (user.role.toLowerCase()) {
+                case 'fpo':
+                case 'farmer':
+                  navigate("/farmer");
+                  break;
+                case 'manufacturer':
+                  navigate("/manufacturer");
+                  break;
+                case 'laboratory':
+                case 'lab':
+                  navigate("/labs");
+                  break;
+                case 'admin':
+                  navigate("/admin-dashboard");
+                  break;
+                default:
+                  console.error("Unknown role, cannot redirect.");
+                  toast.error("❌ Unknown user role. Please contact support.", {
+                      duration: 4000,
+                      id: 'role-error'
+                  });
+                  break;
+              }
+            }, 100);
+          }, 3000);
 
         } catch (error) {
+          // Dismiss loading toast and reset loading state
           toast.dismiss(loadingToast);
           setLoading(false);
           
           console.error('Registration error:', error);
           
-          // Handle specific error cases
+          // Handle specific error cases with proper duration
+          let errorMessage = '❌ Registration failed. Please try again.';
+          let errorDuration = 4000;
+          
           if (error.message.includes('email')) {
-            toast.error('This email is already registered. Please try logging in instead.');
+            errorMessage = '📧 This email is already registered. Please try logging in instead.';
+            errorDuration = 5000;
           } else if (error.message.includes('validation')) {
-            toast.error('Please check your form data and try again.');
+            errorMessage = '📝 Please check your form data and try again.';
+            errorDuration = 4000;
           } else if (error.message.includes('network') || error.message.includes('fetch')) {
-            toast.error('Network error. Please check your connection and try again.');
-          } else {
-            handleApiError(error, 'Registration failed. Please try again.');
+            errorMessage = '🌐 Network error. Please check your connection and try again.';
+            errorDuration = 4000;
           }
+          
+          toast.error(errorMessage, {
+            duration: errorDuration,
+            id: 'signup-error'
+          });
+          
+          // Reset form after error toast is shown (wait for toast to be displayed)
+          setTimeout(() => {
+            resetFormToStart();
+          }, errorDuration + 500); // Wait for error toast to finish + small buffer
         }
     };
 
     const renderStep = () => {
         switch (step) {
             case 1:
-                return <PersonalDetailsStep onNext={handleNext} />;
+                return <PersonalDetailsStep onNext={handleNext} shouldReset={shouldResetForm} />;
             case 2:
                 return (
                     <RoleSelectionStep 
@@ -197,15 +265,50 @@ const SignupForm = () => {
 
     return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <Toaster />
+            <Toaster 
+                position="top-right"
+                containerClassName="z-50"
+                containerStyle={{
+                    zIndex: 9999,
+                }}
+                toastOptions={{
+                    duration: 3000,
+                    style: {
+                        background: '#1e293b',
+                        color: '#f8fafc',
+                        border: '1px solid #475569',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        maxWidth: '400px',
+                    },
+                    success: {
+                        duration: 4000,
+                        iconTheme: {
+                            primary: '#10b981',
+                            secondary: '#ffffff',
+                        },
+                    },
+                    error: {
+                        duration: 4000,
+                        iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#ffffff',
+                        },
+                    },
+                    loading: {
+                        duration: Infinity,
+                    },
+                }}
+            />
+            
             <div className="max-w-xl w-full mx-4">
-                <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 p-8 shadow-2xl">
+                <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-lg p-8 shadow-2xl">
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-2xl font-bold text-white">Create an Account</h2>
                             <p className="text-sm text-slate-400 mt-1">{getStepTitle()} - Step {step} of 3</p>
                         </div>
-                        <div className="p-2 bg-blue-500/20">
+                        <div className="p-2 bg-blue-500/20 rounded-lg">
                             <Waves className="h-6 w-6 text-[#34d399]" />
                         </div>
                     </div>
@@ -216,9 +319,9 @@ const SignupForm = () => {
                             <span className="text-xs text-slate-400">Progress</span>
                             <span className="text-xs text-slate-400">{Math.round((step / 3) * 100)}%</span>
                         </div>
-                        <div className="w-full bg-slate-700 h-2">
+                        <div className="w-full bg-slate-700 rounded-full h-2">
                             <div 
-                                className="bg-[#34d399] h-2 transition-all duration-300 ease-in-out" 
+                                className="bg-[#34d399] h-2 rounded-full transition-all duration-300 ease-in-out" 
                                 style={{ width: `${(step / 3) * 100}%` }}
                             />
                         </div>

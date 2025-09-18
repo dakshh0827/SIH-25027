@@ -176,64 +176,64 @@ const useAuthStore = create((set, get) => ({
   },
 
   // Helper method for API error handling
-  handleApiError: (error, defaultMessage = 'An error occurred') => {
-    const message = error.response?.data?.message || error.message || defaultMessage;
-    toast.error(`❌ ${message}`, {
-      duration: 4000,
-      position: 'top-right',
-      style: {
-        background: '#ef4444',
-        color: '#fff',
-      },
-    });
-  },
+  // handleApiError: (error, defaultMessage = 'An error occurred') => {
+  //   const message = error.response?.data?.message || error.message || defaultMessage;
+  //   toast.error(`❌ ${message}`, {
+  //     duration: 4000,
+  //     position: 'top-right',
+  //     style: {
+  //       background: '#ef4444',
+  //       color: '#fff',
+  //     },
+  //   });
+  // },
 
-  // Helper method for success messages
-  showSuccess: (message) => {
-    toast.success(`✅ ${message}`, {
-      duration: 3000,
-      position: 'top-right',
-      style: {
-        background: '#10b981',
-        color: '#fff',
-      },
-    });
-  },
+  // // Helper method for success messages
+  // showSuccess: (message) => {
+  //   toast.success(`✅ ${message}`, {
+  //     duration: 3000,
+  //     position: 'top-right',
+  //     style: {
+  //       background: '#10b981',
+  //       color: '#fff',
+  //     },
+  //   });
+  // },
 
-  // Helper method for warning messages
-  showWarning: (message) => {
-    toast(`⚠️ ${message}`, {
-      duration: 4000,
-      position: 'top-right',
-      style: {
-        background: '#f59e0b',
-        color: '#1f2937',
-      },
-    });
-  },
+  // // Helper method for warning messages
+  // showWarning: (message) => {
+  //   toast(`⚠️ ${message}`, {
+  //     duration: 4000,
+  //     position: 'top-right',
+  //     style: {
+  //       background: '#f59e0b',
+  //       color: '#1f2937',
+  //     },
+  //   });
+  // },
 
-  // Helper method for info messages
-  showInfo: (message) => {
-    toast(`ℹ️ ${message}`, {
-      duration: 3000,
-      position: 'top-right',
-      style: {
-        background: '#3b82f6',
-        color: '#ffffff',
-      },
-    });
-  },
+  // // Helper method for info messages
+  // showInfo: (message) => {
+  //   toast(`ℹ️ ${message}`, {
+  //     duration: 3000,
+  //     position: 'top-right',
+  //     style: {
+  //       background: '#3b82f6',
+  //       color: '#ffffff',
+  //     },
+  //   });
+  // },
 
-  // Helper method for loading messages
-  showLoading: (message) => {
-    return toast.loading(message, {
-      position: 'top-right',
-      style: {
-        background: '#1e293b',
-        color: '#fff',
-      },
-    });
-  },
+  // // Helper method for loading messages
+  // showLoading: (message) => {
+  //   return toast.loading(message, {
+  //     position: 'top-right',
+  //     style: {
+  //       background: '#1e293b',
+  //       color: '#fff',
+  //     },
+  //   });
+  // },
   
   // Set loading state
   setLoading: (loading) => {

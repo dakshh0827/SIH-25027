@@ -246,7 +246,7 @@ const LoginScreen = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center px-4 py-3 border border-[#10b981] bg-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#10b981] disabled:hover:text-white"
+              className="w-full flex items-center justify-center px-4 py-3 border border-[#10b981] bg-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#10b981] disabled:hover:text-white cursor-pointer"
             >
               {isSubmitting ? (
                 <>
@@ -265,7 +265,7 @@ const LoginScreen = () => {
             <button 
               onClick={handleSignup}
               disabled={isSubmitting}
-              className="text-[#34d399] hover:text-[#10b981] font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[#34d399] hover:text-[#10b981] font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Sign up
             </button>

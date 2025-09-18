@@ -102,11 +102,12 @@ const LandingPage = () => {
     const [loading, setLoading] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [animationsInitialized, setAnimationsInitialized] = useState(false);
-    const [forceGreenTheme, setForceGreenTheme] = useState(0); // Force re-render counter
+    const [forceGreenTheme, setForceGreenTheme] = useState(0);
     const heroRef = useRef(null);
     const mostViewedRef = useRef(null);
     const titleRef = useRef(null);
     const observerRef = useRef(null);
+    const scrollHandlerRef = useRef(null);
 
     const handleSearch = () => {
         if (!searchTerm.trim()) {
@@ -166,14 +167,12 @@ const LandingPage = () => {
 
     // Function to reset all animations
     const resetAnimations = () => {
-        // Reset hero elements
         const heroElements = document.querySelectorAll('.hero-animate');
         heroElements.forEach((el) => {
             el.style.opacity = '0';
             el.style.transform = 'translateY(30px)';
         });
 
-        // Reset animated sections
         const animatedSections = document.querySelectorAll('.animated-section');
         animatedSections.forEach((section) => {
             section.style.opacity = '0';
@@ -185,7 +184,6 @@ const LandingPage = () => {
     const initializeAnimations = () => {
         if (animationsInitialized) return;
 
-        // Clean up previous observer
         if (observerRef.current) {
             observerRef.current.disconnect();
         }
@@ -204,7 +202,6 @@ const LandingPage = () => {
             });
         }, observerOptions);
 
-        // Set up animated sections
         const animatedSections = document.querySelectorAll('.animated-section');
         animatedSections.forEach((section) => {
             section.style.opacity = '0';
@@ -213,7 +210,6 @@ const LandingPage = () => {
             observerRef.current.observe(section);
         });
 
-        // Hero animation with proper delay
         const heroElements = document.querySelectorAll('.hero-animate');
         heroElements.forEach((el, index) => {
             el.style.opacity = '0';
@@ -223,89 +219,55 @@ const LandingPage = () => {
             setTimeout(() => {
                 el.style.opacity = '1';
                 el.style.transform = 'translateY(0)';
-            }, index * 200 + 100); // Added small initial delay
+            }, index * 200 + 100);
         });
 
         setAnimationsInitialized(true);
     };
 
-    // Function to initialize parallax
+    // Fixed parallax function
     const initializeParallax = () => {
+        // Remove existing scroll listener to prevent duplicates
+        if (scrollHandlerRef.current) {
+            window.removeEventListener('scroll', scrollHandlerRef.current);
+        }
+
         const handleScroll = () => {
             const scrolled = window.pageYOffset;
             const parallax = document.querySelector('.bg-parallax');
             if (parallax) {
-                parallax.style.transform = `translateY(${scrolled * 0.3}px)`;
+                // Use transform: translate3d for better performance and consistency
+                // Reduced parallax speed to prevent excessive movement
+                const yPos = -(scrolled * 0.2);
+                parallax.style.transform = `translate3d(0, ${yPos}px, 0)`;
+                // Ensure the transform doesn't reset by maintaining the style
+                parallax.style.willChange = 'transform';
             }
         };
 
+        scrollHandlerRef.current = handleScroll;
+        
         // Initialize with current scroll position
         handleScroll();
         
-        // Remove existing scroll listener to prevent duplicates
-        window.removeEventListener('scroll', handleScroll);
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
 
         return handleScroll;
     };
 
-    useEffect(() => {
-        setMounted(true);
-        
-        // Show welcome toast when component mounts
-        // toast.success('🌿 Welcome to AyurTrace - Herb Provenance Platform!', {
-        //     duration: 3000,
-        //     position: 'top-right',
-        // });
-        
-        // Apply green theme immediately and aggressively
-        const immediateThemeApplication = () => {
-            applyGreenTheme();
-            // Apply multiple times to ensure it sticks
-            setTimeout(() => applyGreenTheme(), 50);
-            setTimeout(() => applyGreenTheme(), 100);
-            setTimeout(() => applyGreenTheme(), 200);
-        };
-        
-        immediateThemeApplication();
-        
-        // Reset animations first
-        resetAnimations();
-        
-        // Small delay to ensure DOM is ready
-        const initTimer = setTimeout(() => {
-            initializeAnimations();
-            const scrollHandler = initializeParallax();
-            applyGreenTheme(); // Apply green theme immediately on mount
-            
-            return () => {
-                window.removeEventListener('scroll', scrollHandler);
-            };
-        }, 100);
-
-        return () => {
-            clearTimeout(initTimer);
-            if (observerRef.current) {
-                observerRef.current.disconnect();
-            }
-        };
-    }, []);
-
-    // Force green theme application with inline styles to override any external CSS
+    // Force green theme application
     const applyGreenTheme = () => {
-        // Set CSS custom properties for green theme
         document.documentElement.style.setProperty('--primary-color', '#10b981');
         document.documentElement.style.setProperty('--primary-light', '#34d399');
         document.documentElement.style.setProperty('--primary-dark', '#059669');
         
-        // Force update with inline styles to override any conflicting CSS
         const logoIcon = document.querySelector('.logo-icon');
         const signupBtn = document.querySelector('.signup-btn');
         const loginBtn = document.querySelector('.login-btn');
         const searchBtn = document.querySelector('.search-btn');
         
         if (logoIcon) {
-            logoIcon.style.color = '#34d399 !important';
+            logoIcon.style.color = '#34d399';
             logoIcon.style.setProperty('color', '#34d399', 'important');
         }
         
@@ -330,21 +292,42 @@ const LandingPage = () => {
             searchBtn.style.setProperty('background-color', '#10b981', 'important');
         }
         
-        // Force re-render to ensure styles are applied
         setForceGreenTheme(prev => prev + 1);
     };
 
-    // Reset animations when component is visible again (e.g., returning from login/signup)
+    useEffect(() => {
+        setMounted(true);
+        
+        const immediateThemeApplication = () => {
+            applyGreenTheme();
+            setTimeout(() => applyGreenTheme(), 50);
+            setTimeout(() => applyGreenTheme(), 100);
+            setTimeout(() => applyGreenTheme(), 200);
+        };
+        
+        immediateThemeApplication();
+        resetAnimations();
+        
+        const initTimer = setTimeout(() => {
+            initializeAnimations();
+            initializeParallax();
+            applyGreenTheme();
+        }, 100);
+
+        return () => {
+            clearTimeout(initTimer);
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+            if (scrollHandlerRef.current) {
+                window.removeEventListener('scroll', scrollHandlerRef.current);
+            }
+        };
+    }, []);
+
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && mounted) {
-                // Show return toast
-                toast.success('👋 Welcome back to AyurTrace!', {
-                    duration: 2000,
-                    position: 'top-right',
-                });
-                
-                // Aggressively force green theme application multiple times
                 const forceGreenMultipleTimes = () => {
                     applyGreenTheme();
                     setTimeout(() => applyGreenTheme(), 10);
@@ -356,46 +339,44 @@ const LandingPage = () => {
                 
                 forceGreenMultipleTimes();
                 
-                // Reset and reinitialize animations when page becomes visible
                 setAnimationsInitialized(false);
                 setTimeout(() => {
                     resetAnimations();
                     setTimeout(() => {
                         initializeAnimations();
-                        applyGreenTheme(); // Apply theme again after animations
+                        // Reinitialize parallax to ensure consistency
+                        initializeParallax();
+                        applyGreenTheme();
                     }, 50);
                 }, 100);
             }
         };
 
         const handlePageShow = (event) => {
-            // Handle back/forward navigation
             applyGreenTheme();
             setTimeout(() => applyGreenTheme(), 100);
+            // Reinitialize parallax on page show
+            setTimeout(() => initializeParallax(), 200);
         };
 
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('pageshow', handlePageShow);
-        
-        // Also handle page focus
         const handleFocus = () => {
-            applyGreenTheme(); // Apply green theme on focus
+            applyGreenTheme();
             setTimeout(() => applyGreenTheme(), 50);
             if (mounted && !animationsInitialized) {
                 setTimeout(() => {
                     initializeAnimations();
-                    applyGreenTheme(); // Apply theme after animations
+                    initializeParallax();
+                    applyGreenTheme();
                 }, 100);
             }
         };
 
-        // Handle page load/refresh
         const handleLoad = () => {
             applyGreenTheme();
             setTimeout(() => applyGreenTheme(), 100);
+            initializeParallax();
         };
 
-        // Handle hash changes (SPA navigation)
         const handleHashChange = () => {
             applyGreenTheme();
         };
@@ -403,9 +384,9 @@ const LandingPage = () => {
         window.addEventListener('focus', handleFocus);
         window.addEventListener('load', handleLoad);
         window.addEventListener('hashchange', handleHashChange);
+        window.addEventListener('pageshow', handlePageShow);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        // Continuous theme enforcement every few seconds when page is visible
         const themeInterval = setInterval(() => {
             if (document.visibilityState === 'visible') {
                 applyGreenTheme();
@@ -422,7 +403,6 @@ const LandingPage = () => {
         };
     }, [mounted, animationsInitialized]);
 
-    // Add handler for Call to Action buttons
     const handleStartProject = () => {
         toast('🚀 Start a Project feature coming soon!', {
             duration: 3000,
@@ -439,7 +419,6 @@ const LandingPage = () => {
         });
     };
 
-    // Add handler for Enter key press in search input
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
             handleSearch();
@@ -448,7 +427,6 @@ const LandingPage = () => {
 
     return (
         <div className="min-h-screen relative overflow-hidden bg-slate-950" key={forceGreenTheme}>
-            {/* Add a style tag to enforce green theme globally */}
             <style>{`
                 .logo-icon {
                     color: #34d399 !important;
@@ -480,22 +458,30 @@ const LandingPage = () => {
                     border-color: #34d399 !important;
                     color: #34d399 !important;
                 }
+                .bg-parallax {
+                    will-change: transform;
+                    backface-visibility: hidden;
+                    perspective: 1000px;
+                }
             `}</style>
-            {/* Background with Parallax */}
+            
+            {/* Fixed Background with Better Parallax */}
             <div 
-                className="bg-parallax absolute top-0 left-0 w-full h-[150%] z-0"
+                className="bg-parallax fixed top-0 left-0 w-full h-[120vh] z-0"
                 style={{
-                    backgroundImage: `url('https://images.unsplash.com/photo-1544568100-847a948585b9?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')`, 
+                    backgroundImage: `url('/6.jpg')`, 
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundColor: '#1e293b' // Navy blue fallback
+                    backgroundPosition: 'center center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundAttachment: 'fixed',
+                    backgroundColor: '#1e293b'
                 }}
             />
             
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 z-1 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/90" />
+            <div className="fixed inset-0 z-1 bg-gradient-to-b from-slate-950/80 via-slate-950/60 to-slate-950/90 pointer-events-none" />
 
-            {/* Header with Navigation Buttons - Changed to green theme with explicit classes */}
+            {/* Header */}
             <header className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center bg-slate-950/20 backdrop-blur-md border-b border-slate-800/50">
                 <div className="flex items-center gap-2">
                   <Waves className="w-8 h-8 text-[#34d399] logo-icon" />
@@ -572,7 +558,7 @@ const LandingPage = () => {
                     </div>
                 </div>
 
-                {/* Provenance Results Section (Dynamic) */}
+                {/* Provenance Results Section */}
                 <div className="max-w-7xl mx-auto px-6 py-12">
                     {loading && (
                         <div className="text-center text-slate-400 py-12">
@@ -586,7 +572,6 @@ const LandingPage = () => {
                                 Provenance Record: <span className="text-emerald-400">{provenanceData.batchId}</span>
                             </h2>
                             <div className="relative border-l-2 border-slate-700 ml-4 pl-8 space-y-12">
-                                {/* Timeline */}
                                 {provenanceData.events.map((event, index) => (
                                     <div key={event.id} className="relative timeline-event">
                                         <div className="absolute -left-12 top-0 flex items-center justify-center w-10 h-10 bg-slate-800 border-2 border-emerald-400 text-emerald-400 backdrop-blur-sm rounded-full">
