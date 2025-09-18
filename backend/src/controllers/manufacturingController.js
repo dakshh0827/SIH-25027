@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 export const createManufacturingReport = async (req, res) => {
   try {
     const {
-      identifier,
       batchId,
       herbUsed,
       quantityUsedKg,
@@ -15,6 +14,8 @@ export const createManufacturingReport = async (req, res) => {
       notes,
       regulatoryTags,
     } = req.body;
+
+    const identifier = `MFG-${batchId}-${Date.now().toString().slice(-6)}`;
 
     const manufacturerProfile = await prisma.manufacturerProfile.findUnique({
       where: { userId: req.user.id },
@@ -46,18 +47,14 @@ export const createManufacturingReport = async (req, res) => {
     res.status(201).json(newReport);
   } catch (error) {
     if (error.code === "P2002") {
-      return res
-        .status(400)
-        .json({
-          message: `A report with this Identifier or Batch ID already exists.`,
-        });
+      return res.status(400).json({
+        message: `A report with this Identifier or Batch ID already exists.`,
+      });
     }
     console.error(error);
-    res
-      .status(500)
-      .json({
-        message: "Server error while creating report.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Server error while creating report.",
+      error: error.message,
+    });
   }
 };

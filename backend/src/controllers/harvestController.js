@@ -7,7 +7,6 @@ const prisma = new PrismaClient();
 export const createHarvest = async (req, res) => {
   try {
     const {
-      identifier,
       herbSpecies,
       harvestWeightKg,
       harvestSeason,
@@ -15,6 +14,12 @@ export const createHarvest = async (req, res) => {
       notes,
       regulatoryTags,
     } = req.body;
+
+    const identifier = `HARV-${herbSpecies
+      .substring(0, 4)
+      .toUpperCase()}-${new Date().getFullYear()}-${Date.now()
+      .toString()
+      .slice(-6)}`;
 
     if (!req.file) {
       return res
@@ -64,11 +69,9 @@ export const createHarvest = async (req, res) => {
     res.status(201).json(newHarvest);
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        message: "Server error while creating harvest.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Server error while creating harvest.",
+      error: error.message,
+    });
   }
 };

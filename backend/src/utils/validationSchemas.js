@@ -91,7 +91,6 @@ export const loginSchema = z.object({
 });
 
 export const harvestSchema = z.object({
-  identifier: z.string().min(1, "Identifier is required."),
   herbSpecies: z.string().min(1, "Herb species is required."),
   harvestWeightKg: z
     .string()
@@ -106,7 +105,6 @@ export const harvestSchema = z.object({
 
 // Schema for creating a new Manufacturing Report
 export const manufacturingReportSchema = z.object({
-  identifier: z.string().min(1, "Identifier is required."),
   batchId: z.string().min(1, "Batch ID is required."),
   herbUsed: z.string().min(1, "Herb used is required."),
   quantityUsedKg: z
@@ -123,7 +121,6 @@ export const manufacturingReportSchema = z.object({
 
 // Schema for creating a new Lab Report
 export const labReportSchema = z.object({
-  identifier: z.string().min(1, "Identifier is required."),
   batchId: z.string().min(1, "Batch ID of the product to test is required."),
   testType: z.string().min(1, "Test type is required."),
   testResult: z.string().min(1, "Test result is required."),
