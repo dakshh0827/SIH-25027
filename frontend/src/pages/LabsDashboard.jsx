@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, History, User, TestTubeDiagonal, Tag, LogOut, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useReportStore } from '../stores/useReportStore';
@@ -13,6 +13,16 @@ const Card = ({ children }) => (
 
 const SectionTitle = ({ title }) => (
   <h3 className="text-xl text-white font-semibold border-b border-slate-700/50 pb-2">{title}</h3>
+);
+
+// Loading component
+const LoadingSpinner = ({ message = "Loading..." }) => (
+  <div className="flex items-center justify-center py-12">
+    <div className="text-center">
+      <Loader2 className="h-12 w-12 text-[#34d399] animate-spin mx-auto mb-4" />
+      <p className="text-slate-400">{message}</p>
+    </div>
+  </div>
 );
 
 // Form for uploading a new lab report
@@ -47,7 +57,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
         regulatoryTags: [...prev.regulatoryTags, tagInput.trim()] 
       }));
       setTagInput('');
-      toast.success(`🏷️ Tag "${tagInput.trim()}" added!`, { duration: 2000 });
+      toast.success(`Tag "${tagInput.trim()}" added!`, { duration: 2000 });
     } else if (formData.regulatoryTags.includes(tagInput.trim())) {
       toast.error('Tag already exists!', { duration: 2000 });
     }
@@ -58,7 +68,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
       ...prev, 
       regulatoryTags: prev.regulatoryTags.filter(tag => tag !== tagToRemove) 
     }));
-    toast.success(`🗑️ Tag "${tagToRemove}" removed!`, { duration: 2000 });
+    toast.success(`Tag "${tagToRemove}" removed!`, { duration: 2000 });
   };
 
   const validateForm = () => {
@@ -133,18 +143,18 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
       const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
       
       if (file.size > maxSize) {
-        toast.error('📁 File size too large. Please select a file under 10MB.', { duration: 4000 });
+        toast.error('File size too large. Please select a file under 10MB.', { duration: 4000 });
         e.target.value = '';
         return;
       }
 
       if (!allowedTypes.includes(fileExtension)) {
-        toast.error('📁 Invalid file type. Please select a PDF, DOC, or DOCX file.', { duration: 4000 });
+        toast.error('Invalid file type. Please select a PDF, DOC, or DOCX file.', { duration: 4000 });
         e.target.value = '';
         return;
       }
 
-      toast.success(`📄 File "${file.name}" selected successfully!`, { duration: 2000 });
+      toast.success(`File "${file.name}" selected successfully!`, { duration: 2000 });
       setFormData(prev => ({ ...prev, labReportFile: file }));
     }
   };
@@ -355,7 +365,7 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
         </p>
         {formData.labReportFile && (
           <p className="mt-1 text-xs text-green-400">
-            ✓ Selected: {formData.labReportFile.name}
+            Selected: {formData.labReportFile.name}
           </p>
         )}
       </div>
@@ -365,17 +375,26 @@ const UploadLabReport = ({ onSubmit, isSubmitting }) => {
         disabled={isSubmitting} 
         className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Upload className="h-4 w-4 mr-2" />
-        {isSubmitting ? 'Submitting...' : 'Submit Lab Report'}
+        {isSubmitting ? (
+          <>
+            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent mr-2"></div>
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Upload className="h-4 w-4 mr-2" />
+            Submit Lab Report
+          </>
+        )}
       </button>
     </form>
   );
 };
 
 // Component to display history of lab reports
-const LabHistory = ({ reports }) => {
+const LabHistory = ({ reports, isLoading }) => {
   const handleReportClick = (report) => {
-    toast.success(`📊 Viewing lab report for ${report.testType}`, {
+    toast.success(`Viewing lab report for ${report.testType}`, {
       duration: 2000,
     });
   };
@@ -395,11 +414,27 @@ const LabHistory = ({ reports }) => {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return <LoadingSpinner message="Loading lab reports history..." />;
+  }
+
+  // Ensure reports is always an array
+  const safeReports = Array.isArray(reports) ? reports : [];
+
   return (
     <div className="space-y-4">
       <SectionTitle title="Lab Reports History" />
       
-      {reports.length > 0 ? (
+      {safeReports.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-700">
             <thead>
@@ -422,9 +457,9 @@ const LabHistory = ({ reports }) => {
               </tr>
             </thead>
             <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
-              {reports.map((report, index) => (
+              {safeReports.map((report, index) => (
                 <tr 
-                  key={report.id || index} 
+                  key={report.id || report._id || index} 
                   className="hover:bg-slate-800/50 transition-colors duration-200"
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -436,7 +471,7 @@ const LabHistory = ({ reports }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {report.issuedDate}
+                    {formatDate(report.issuedDate || report.date || report.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">
                     {report.manufacturingReportId}
@@ -468,15 +503,7 @@ const LabHistory = ({ reports }) => {
 // Component for the lab profile section
 const LabProfile = ({ profile, user, isLoading, onRefresh }) => {
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <SectionTitle title="Laboratory Profile" />
-        <div className="text-center py-12">
-          <Loader2 className="h-12 w-12 text-[#34d399] animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading profile...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading profile..." />;
   }
 
   if (!profile || !user) {
@@ -600,19 +627,24 @@ const LabProfile = ({ profile, user, isLoading, onRefresh }) => {
 // Main Dashboard Component
 const LabsDashboard = () => {
   const [activeSection, setActiveSection] = useState('history');
-  const [labReports, setLabReports] = useState([]);
   
-  const { logout, getProfile, profile, user, isLoading } = useAuthStore();
-  const { isSubmitting, submitReport } = useReportStore();
+  const { isSubmitting, submitReport, labRecords, setLabRecords } = useReportStore();
+  const { logout, getProfile, getLabHistory, profile, user, isLoading } = useAuthStore();
   
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Load profile when component mounts or when profile section is accessed
-  React.useEffect(() => {
-    if (activeSection === 'profile' && !profile) {
-      handleGetProfile();
-    }
-  }, [activeSection, profile]);
+  // Load profile and lab history when component mounts
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await getProfile();
+        await getLabHistory();
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
+    };
+    fetchData();
+  }, [getProfile, getLabHistory]);
 
   const handleGetProfile = async () => {
     setProfileLoading(true);
@@ -634,21 +666,15 @@ const LabsDashboard = () => {
       });
       
       if (newReport) {
-        setLabReports(prev => [
-          { 
-            ...newReport, 
-            id: Date.now(), // Add unique ID
-            date: new Date().toLocaleDateString() 
-          }, 
-          ...prev
-        ]);
+        // Immediately fetch the latest history from the server
+        await getLabHistory();
         
         // Switch to history view after successful submission
         setTimeout(() => {
           setActiveSection('history');
         }, 1000);
         
-        toast.success(`✅ Lab report for ${formData.testType} submitted successfully!`, {
+        toast.success(`Lab report for ${formData.testType} submitted successfully!`, {
           duration: 4000,
         });
       }
@@ -678,7 +704,7 @@ const LabsDashboard = () => {
           />
         );
       case 'history':
-        return <LabHistory reports={labReports} />;
+        return <LabHistory reports={labRecords} isLoading={isLoading} />;
       case 'profile':
         return (
           <LabProfile 
@@ -689,7 +715,7 @@ const LabsDashboard = () => {
           />
         );
       default:
-        return <LabHistory reports={labReports} />;
+        return <LabHistory reports={labRecords} isLoading={isLoading} />;
     }
   };
 
@@ -697,13 +723,36 @@ const LabsDashboard = () => {
     <div className="min-h-screen bg-slate-950 p-8 text-white">
       <Toaster 
         position="top-right"
+        containerClassName="z-50"
+        containerStyle={{
+          zIndex: 9999,
+        }}
         toastOptions={{
           duration: 3000,
           style: {
             background: '#1e293b',
             color: '#f8fafc',
-            border: '1px solid #475569'
-          }
+            border: '1px solid #475569',
+            fontSize: '14px',
+            maxWidth: '400px',
+          },
+          success: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff',
+            },
+          },
+          loading: {
+            duration: Infinity,
+          },
         }}
       />
       
@@ -715,6 +764,11 @@ const LabsDashboard = () => {
             <p className="text-slate-400 text-sm mt-1">
               Manage lab reports and testing documentation
             </p>
+            {user && (
+              <p className="text-slate-500 text-xs mt-1">
+                Welcome back, {user.fullName}
+              </p>
+            )}
           </div>
           <div className="relative flex gap-3">
             <button

@@ -144,14 +144,21 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
   );
 };
 
-const ManufacturingHistory = ({ reports }) => {
+const ManufacturingHistory = ({ reports, isLoading }) => {
   const handleReportClick = (report) => {
     toast.success(`📊 Viewing details for batch ${report.batchId}`, { duration: 2000 });
   };
+  
+  if (isLoading) {
+    return <LoadingSpinner message="Loading manufacturing history..." />;
+  }
+
+  const safeReports = Array.isArray(reports) ? reports : [];
+
   return (
     <div className="space-y-4">
       <SectionTitle title="Manufacturing Reports History" />
-      {reports.length > 0 ? (
+      {safeReports.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-700">
             <thead>
@@ -164,8 +171,8 @@ const ManufacturingHistory = ({ reports }) => {
               </tr>
             </thead>
             <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
-              {reports.map((report, index) => (
-                <tr key={index} className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200" onClick={() => handleReportClick(report)}>
+              {safeReports.map((report, index) => (
+                <tr key={report.id || index} className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200" onClick={() => handleReportClick(report)}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">{report.batchId}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{report.herbUsed}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">{report.quantityUsedKg || report.quantityUsed}</td>
@@ -246,7 +253,6 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
       </div>
       
       <div className="space-y-6 text-slate-300">
-        {/* User Information */}
         <div className="bg-slate-800/30 p-4 border border-slate-700/50">
           <h4 className="text-lg font-semibold text-white mb-3">Account Information</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -269,7 +275,6 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
           </div>
         </div>
         
-        {/* Manufacturer Profile Information */}
         <div className="flex items-center space-x-4">
           <div className="p-4 bg-slate-700/50 border border-slate-600">
             <Factory className="h-12 w-12 text-[#34d399]" />
@@ -320,40 +325,38 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
   );
 };
 
-// Main Dashboard Component
 const ManufacturerDashboard = () => {
   const [activeSection, setActiveSection] = useState('history');
-  const [manufacturingReports, setManufacturingReports] = useState([]);
   
-  const { logout, getProfile, profile, user, isLoading } = useAuthStore();
-  const { isSubmitting, submitReport } = useReportStore();
+  const { isSubmitting, submitReport, manufacturingReports, setManufacturingReports } = useReportStore();
+  const { logout, getProfile, getManufacturingHistory, profile, user, isLoading } = useAuthStore();
   
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Load profile when component mounts or when profile section is accessed
   useEffect(() => {
-    if (activeSection === 'profile' && !profile) {
-      handleGetProfile();
-    }
-  }, [activeSection, profile]);
-
-  const handleGetProfile = async () => {
-    setProfileLoading(true);
-    try {
+    const fetchData = async () => {
       await getProfile();
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      toast.error('Failed to load profile');
-    } finally {
-      setProfileLoading(false);
-    }
-  };
+      await getManufacturingHistory();
+    };
+    fetchData();
+  }, [getProfile, getManufacturingHistory]);
 
   const handleUploadSubmit = async (formData) => {
-    const newReport = await submitReport({ reportType: 'manufacturer', data: formData });
-    if (newReport) {
-      setManufacturingReports(prev => [{ ...newReport, date: new Date().toLocaleDateString() }, ...prev]);
-      setActiveSection('history');
+    try {
+      const newReport = await submitReport({ reportType: 'manufacturer', data: formData });
+      if (newReport) {
+        // Refetch the manufacturing history to ensure data consistency
+        await getManufacturingHistory();
+        
+        setTimeout(() => {
+          setActiveSection('history');
+        }, 1000);
+        
+        toast.success(`✅ Manufacturing report for batch ${newReport.batchId} submitted successfully!`);
+      }
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      toast.error('Failed to submit manufacturing report. Please try again.');
     }
   };
 
@@ -365,23 +368,29 @@ const ManufacturerDashboard = () => {
     logout();
   }
 
+  const handleRefreshProfile = async () => {
+    setProfileLoading(true);
+    await getProfile();
+    setProfileLoading(false);
+  }
+
   const renderSection = () => {
     switch (activeSection) {
       case 'upload':
         return <UploadManufacturingReport onSubmit={handleUploadSubmit} isSubmitting={isSubmitting} />;
       case 'history':
-        return <ManufacturingHistory reports={manufacturingReports} />;
+        return <ManufacturingHistory reports={manufacturingReports} isLoading={isLoading} />;
       case 'profile':
         return (
           <ManufacturerProfile
             profile={profile}
             user={user}
             isLoading={profileLoading || isLoading}
-            onRefresh={handleGetProfile}
+            onRefresh={handleRefreshProfile}
           />
         );
       default:
-        return <ManufacturingHistory reports={manufacturingReports} />;
+        return <ManufacturingHistory reports={manufacturingReports} isLoading={isLoading} />;
     }
   };
 
@@ -389,7 +398,6 @@ const ManufacturerDashboard = () => {
     <div className="min-h-screen bg-slate-950 p-8 text-white">
       <Toaster />
       <div className="container mx-auto max-w-7xl">
-        {/* Navbar */}
         <nav className="flex items-center justify-between py-4 mb-8 border-b border-slate-700/50">
           <h1 className="text-2xl font-bold">Manufacturer Dashboard</h1>
           <div className="relative flex gap-3">
@@ -409,9 +417,7 @@ const ManufacturerDashboard = () => {
             </button>
           </div>
         </nav>
-        {/* Main Content */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
           <div className="md:col-span-1 space-y-4">
             <Card>
               <nav className="space-y-2">
@@ -432,7 +438,6 @@ const ManufacturerDashboard = () => {
               </nav>
             </Card>
           </div>
-          {/* Dynamic Content */}
           <div className="md:col-span-3">
             <Card>
               {renderSection()}
@@ -443,4 +448,5 @@ const ManufacturerDashboard = () => {
     </div>
   );
 };
+
 export default ManufacturerDashboard;

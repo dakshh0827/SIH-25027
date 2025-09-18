@@ -44,8 +44,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/harvests", harvestRoutes);
-app.use("/api/manufacturing-reports", manufacturingRoutes);
-app.use("/api/lab-reports", labRoutes);
+app.use("/api/manufacturing_reports", manufacturingRoutes);
+app.use("/api/lab_reports", labRoutes);
 
 // ✅ Health check
 app.get("/", (req, res) => {

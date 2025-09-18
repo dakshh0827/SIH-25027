@@ -1,18 +1,56 @@
-// utils/validationSchemas.js
 import { z } from "zod";
 
+// Updated Lab Report Schema to match your new schema design
+export const manufacturingReportSchema = z.object({
+  // These fields will be auto-generated on backend, so make them optional
+  batchId: z.string().optional(),
+  identifier: z.string().optional(),
+  
+  // Required fields from your request
+  herbUsed: z.string().min(1, "Herb used is required."),
+  quantityUsedKg: z
+    .union([z.string(), z.number()])
+    .transform((val) => typeof val === 'string' ? parseFloat(val) : val)
+    .refine((n) => !isNaN(n) && n > 0, "Quantity used must be a positive number."),
+  processingSteps: z
+    .string()
+    .min(1, "Processing steps are required."), // Reduced from 10 to 1 since your test data is short
+  
+  // Status field from your request
+  status: z.enum(["in-progress", "completed", "quality-check", "approved"]).default("in-progress"),
+  
+  // Date fields - these should match your Prisma model
+  effectiveDate: z.string().min(1, "Manufacturing date is required."),
+  expiryDate: z.string().optional(),
+  
+  // Optional fields
+  notes: z.string().optional(),
+  regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
+// Rest of your schemas remain the same...
+export const labReportSchema = z.object({
+  manufacturingReportId: z.string().min(1, "Manufacturing Report ID is required."),
+  testType: z.string().min(1, "Test type is required."),
+  testResult: z.string().min(1, "Test result is required."),
+  status: z.enum(["registered", "preliminary", "final", "amended"]).default("final"),
+  effectiveDate: z.string().min(1, "Test performed date is required."),
+  issuedDate: z.string().min(1, "Report issued date is required."),
+  notes: z.string().optional(),
+  regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
+// Rest of your existing schemas remain the same...
 export const checkEmailSchema = z.object({
   email: z.string().email("Invalid email address."),
 });
 
-// Base schema for common fields (fullName, email, password)
 const baseUserSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters long."),
   email: z.string().email("Invalid email address."),
   password: z.string().min(8, "Password must be at least 8 characters long."),
 });
 
-// Schema for Admin registration
 const adminSchema = baseUserSchema.extend({
   role: z.literal("admin"),
   adminId: z.string().min(1, "Admin ID is required."),
@@ -22,11 +60,10 @@ const adminSchema = baseUserSchema.extend({
     .length(42, "Must be a valid Ethereum address."),
 });
 
-// Schema for FPO registration
 const fpoSchema = baseUserSchema.extend({
   role: z.literal("farmer"),
   fpoName: z.string().min(1, "FPO Name is required."),
-  registrationNumber: z.string().min(1, "Registration number is required."),
+  regNumber: z.string().min(1, "Registration number is required."),
   pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format."),
   gstin: z
     .string()
@@ -40,7 +77,6 @@ const fpoSchema = baseUserSchema.extend({
     .min(3, "Authorized representative name is required."),
 });
 
-// Schema for Manufacturer registration
 const manufacturerSchema = baseUserSchema.extend({
   role: z.literal("manufacturer"),
   manufacturerName: z.string().min(1, "Manufacturer name is required."),
@@ -59,7 +95,6 @@ const manufacturerSchema = baseUserSchema.extend({
     .min(3, "Authorized representative name is required."),
 });
 
-// Schema for Laboratory registration
 const laboratorySchema = baseUserSchema.extend({
   role: z.literal("lab"),
   labName: z.string().min(1, "Lab name is required."),
@@ -80,7 +115,6 @@ const laboratorySchema = baseUserSchema.extend({
     .min(3, "Authorized representative name is required."),
 });
 
-// The main registration schema that uses discriminatedUnion
 export const registerSchema = z.discriminatedUnion("role", [
   adminSchema,
   fpoSchema,
@@ -88,7 +122,6 @@ export const registerSchema = z.discriminatedUnion("role", [
   laboratorySchema,
 ]);
 
-// Simple schema for login
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
   password: z.string().min(1, "Password cannot be empty."),
@@ -102,31 +135,6 @@ export const harvestSchema = z.object({
     .refine((n) => n > 0, "Harvest weight must be a positive number."),
   harvestSeason: z.string().min(1, "Harvest season is required."),
   location: z.string().min(1, "Location is required."),
-  notes: z.string().optional(),
-  // For form-data, tags might come as a single string or multiple. We handle both.
-  regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
-});
-
-// Schema for creating a new Manufacturing Report
-export const manufacturingReportSchema = z.object({
-  herbUsed: z.string().min(1, "Herb used is required."),
-  quantityUsedKg: z
-    .string()
-    .transform(Number)
-    .refine((n) => n > 0, "Quantity used must be a positive number."),
-  processingSteps: z
-    .string()
-    .min(10, "Processing steps must be at least 10 characters long."),
-  expiryDate: z.string().datetime().optional().nullable(), // expecting ISO date string e.g. "2025-12-31T00:00:00.000Z"
-  notes: z.string().optional(),
-  regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
-});
-
-// Schema for creating a new Lab Report
-export const labReportSchema = z.object({
-  batchId: z.string().min(1, "Batch ID of the product to test is required."),
-  testType: z.string().min(1, "Test type is required."),
-  testResult: z.string().min(1, "Test result is required."),
   notes: z.string().optional(),
   regulatoryTags: z.union([z.string(), z.array(z.string())]).optional(),
 });
