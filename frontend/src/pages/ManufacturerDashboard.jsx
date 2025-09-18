@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronDown, Upload, History, User, Factory, TestTubeDiagonal, Plus } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Upload, History, User, Factory, Plus, Tag, Calendar, FileText } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+import { useReportStore } from '../stores/useReportStore';
 
-// Reusable UI components for a consistent look
+// Reusable UI components
 const Card = ({ children }) => (
   <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 p-6 shadow-2xl space-y-6">
     {children}
@@ -14,201 +15,153 @@ const SectionTitle = ({ title }) => (
 );
 
 // Form for uploading a new manufacturing report
-const UploadManufacturingReport = ({ onSubmit }) => {
+const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
-    manufacturerName: '',
-    ayushLicenseNumber: '',
     batchId: '',
     herbUsed: '',
-    quantityUsed: '',
+    quantityUsedKg: '',
     processingSteps: '',
+    status: 'in-progress',
+    effectiveDate: new Date().toISOString().split('T')[0],
+    expiryDate: '',
+    notes: '',
+    regulatoryTags: [],
   });
+  const [tagInput, setTagInput] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleAddTag = (e) => {
     e.preventDefault();
-    
-    // Show loading toast
-    const loadingToast = toast.loading('🏭 Submitting manufacturing report...', {
-      position: 'top-right',
-    });
-
-    try {
-      setTimeout(() => {
-        console.log("Submitting new manufacturing report:", formData);
-        onSubmit(formData);
-        
-        // Dismiss loading toast and show success
-        toast.dismiss(loadingToast);
-        toast.success(`✅ Manufacturing report for batch ${formData.batchId} submitted successfully!`, {
-          duration: 4000,
-          position: 'top-right',
-        });
-        
-        setFormData({
-          manufacturerName: '',
-          ayushLicenseNumber: '',
-          batchId: '',
-          herbUsed: '',
-          quantityUsed: '',
-          processingSteps: '',
-        });
-      }, 1500);
-    } catch (error) {
-      toast.dismiss(loadingToast);
-      toast.error('❌ Failed to submit manufacturing report. Please try again.', {
-        duration: 4000,
-        position: 'top-right',
-      });
+    if (tagInput.trim() && !formData.regulatoryTags.includes(tagInput.trim())) {
+      setFormData(prev => ({ ...prev, regulatoryTags: [...prev.regulatoryTags, tagInput.trim()] }));
+      setTagInput('');
+      toast.success(`🏷️ Tag "${tagInput.trim()}" added!`, { duration: 2000 });
+    } else if (formData.regulatoryTags.includes(tagInput.trim())) {
+      toast.error('Tag already exists!', { duration: 2000 });
     }
   };
 
-  const handleInputFocus = (fieldName) => {
-    const fieldMessages = {
-      manufacturerName: '🏭 Enter your registered manufacturer name',
-      ayushLicenseNumber: '📝 Your official AYUSH license number',
-      batchId: '🏷️ Unique identifier for this production batch',
-      herbUsed: '🌿 Specify the herb used in processing',
-      quantityUsed: '⚖️ Enter quantity in kilograms',
-      processingSteps: '🔄 Describe your manufacturing process'
-    };
-    
-    toast(fieldMessages[fieldName], {
-      duration: 2000,
-      position: 'top-right',
-      icon: '💡',
-    });
+  const handleRemoveTag = (tagToRemove) => {
+    setFormData(prev => ({ ...prev, regulatoryTags: prev.regulatoryTags.filter(tag => tag !== tagToRemove) }));
+    toast.success(`🗑️ Tag "${tagToRemove}" removed!`, { duration: 2000 });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await onSubmit(formData);
+    setFormData({ batchId: '', herbUsed: '', quantityUsedKg: '', processingSteps: '', status: 'in-progress', effectiveDate: new Date().toISOString().split('T')[0], expiryDate: '', notes: '', regulatoryTags: [] });
+    setTagInput('');
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <SectionTitle title="New Manufacturing Report" />
       <div>
-        <label htmlFor="manufacturerName" className="block text-sm font-medium text-slate-300">Manufacturer Name</label>
-        <input 
-          type="text" 
-          name="manufacturerName" 
-          id="manufacturerName" 
-          value={formData.manufacturerName} 
-          onChange={handleChange} 
-          onFocus={() => handleInputFocus('manufacturerName')}
-          required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
-        />
+        <label htmlFor="batchId" className="block text-sm font-medium text-slate-300">Batch ID <span className="text-red-400">*</span></label>
+        <input type="text" name="batchId" id="batchId" value={formData.batchId} onChange={handleChange} required disabled={isSubmitting} placeholder="e.g., BATCH-2024-001" className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50" />
       </div>
       <div>
-        <label htmlFor="ayushLicenseNumber" className="block text-sm font-medium text-slate-300">AYUSH License Number</label>
-        <input 
-          type="text" 
-          name="ayushLicenseNumber" 
-          id="ayushLicenseNumber" 
-          value={formData.ayushLicenseNumber} 
-          onChange={handleChange} 
-          onFocus={() => handleInputFocus('ayushLicenseNumber')}
-          required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
-        />
+        <label htmlFor="herbUsed" className="block text-sm font-medium text-slate-300">Herb Used <span className="text-red-400">*</span></label>
+        <input type="text" name="herbUsed" id="herbUsed" value={formData.herbUsed} onChange={handleChange} required disabled={isSubmitting} placeholder="e.g., Turmeric, Ashwagandha" className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50" />
       </div>
       <div>
-        <label htmlFor="batchId" className="block text-sm font-medium text-slate-300">Batch ID</label>
-        <input 
-          type="text" 
-          name="batchId" 
-          id="batchId" 
-          value={formData.batchId} 
-          onChange={handleChange} 
-          onFocus={() => handleInputFocus('batchId')}
-          required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
-        />
+        <label htmlFor="quantityUsedKg" className="block text-sm font-medium text-slate-300">Quantity Used (kg) <span className="text-red-400">*</span></label>
+        <input type="number" name="quantityUsedKg" id="quantityUsedKg" value={formData.quantityUsedKg} onChange={handleChange} required disabled={isSubmitting} step="0.01" min="0" placeholder="e.g., 250.5" className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50" />
       </div>
       <div>
-        <label htmlFor="herbUsed" className="block text-sm font-medium text-slate-300">Herb Used</label>
-        <input 
-          type="text" 
-          name="herbUsed" 
-          id="herbUsed" 
-          value={formData.herbUsed} 
-          onChange={handleChange} 
-          onFocus={() => handleInputFocus('herbUsed')}
-          required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
-        />
+        <label htmlFor="processingSteps" className="block text-sm font-medium text-slate-300">Processing Steps <span className="text-red-400">*</span></label>
+        <textarea name="processingSteps" id="processingSteps" value={formData.processingSteps} onChange={handleChange} rows="4" required disabled={isSubmitting} placeholder="Describe the complete manufacturing process, including cleaning, drying, grinding, and packaging steps..." className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50" />
       </div>
       <div>
-        <label htmlFor="quantityUsed" className="block text-sm font-medium text-slate-300">Quantity Used (kg)</label>
-        <input 
-          type="number" 
-          name="quantityUsed" 
-          id="quantityUsed" 
-          value={formData.quantityUsed} 
-          onChange={handleChange} 
-          onFocus={() => handleInputFocus('quantityUsed')}
-          required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
-        />
+        <label htmlFor="status" className="block text-sm font-medium text-slate-300">Manufacturing Status <span className="text-red-400">*</span></label>
+        <select name="status" id="status" value={formData.status} onChange={handleChange} required disabled={isSubmitting} className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50" >
+          <option value="draft">Draft</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
       </div>
       <div>
-        <label htmlFor="processingSteps" className="block text-sm font-medium text-slate-300">Processing Steps</label>
-        <textarea 
-          name="processingSteps" 
-          id="processingSteps" 
-          value={formData.processingSteps} 
-          onChange={handleChange} 
-          onFocus={() => handleInputFocus('processingSteps')}
-          rows="4" 
-          required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none"
-        ></textarea>
+        <label htmlFor="effectiveDate" className="block text-sm font-medium text-slate-300">Manufacturing Date <span className="text-red-400">*</span></label>
+        <input type="date" name="effectiveDate" id="effectiveDate" value={formData.effectiveDate} onChange={handleChange} required disabled={isSubmitting} className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50" />
       </div>
-      <button type="submit" className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98]">
-        <Plus className="h-4 w-4 mr-2" /> Submit Report
+      <div>
+        <label htmlFor="expiryDate" className="block text-sm font-medium text-slate-300">Expiry Date</label>
+        <input type="date" name="expiryDate" id="expiryDate" value={formData.expiryDate} onChange={handleChange} disabled={isSubmitting} className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50" />
+        <p className="mt-1 text-xs text-slate-400">Leave blank if product doesn't have an expiry date</p>
+      </div>
+      <div>
+        <label htmlFor="notes" className="block text-sm font-medium text-slate-300">Additional Notes</label>
+        <textarea name="notes" id="notes" value={formData.notes} onChange={handleChange} disabled={isSubmitting} rows="3" placeholder="Any additional information about the manufacturing process..." className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50" />
+      </div>
+      <div>
+        <label htmlFor="tagInput" className="block text-sm font-medium text-slate-300">Regulatory Tags</label>
+        <div className="mt-1 flex gap-2">
+          <input type="text" id="tagInput" value={tagInput} onChange={(e) => setTagInput(e.target.value)} disabled={isSubmitting} placeholder="e.g., AYUSH-GMP, ISO-9001" className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50" onKeyPress={(e) => { if (e.key === 'Enter') { handleAddTag(e); } }} />
+          <button type="button" onClick={handleAddTag} disabled={isSubmitting || !tagInput.trim()} className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50">
+            <Tag className="h-5 w-5" />
+          </button>
+        </div>
+        {formData.regulatoryTags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {formData.regulatoryTags.map((tag, index) => (
+              <span key={index} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200" onClick={() => handleRemoveTag(tag)}>
+                {tag}
+                <span className="text-blue-400 hover:text-blue-200">×</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <button type="submit" disabled={isSubmitting} className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50">
+        {isSubmitting ? (
+          <>
+            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Plus className="h-4 w-4 mr-2" /> Submit Manufacturing Report
+          </>
+        )}
       </button>
     </form>
   );
 };
 
-// Component to display history of manufacturing reports
 const ManufacturingHistory = ({ reports }) => {
   const handleReportClick = (report) => {
-    toast.success(`📊 Viewing details for batch ${report.batchId}`, {
-      duration: 2000,
-    });
+    toast.success(`📊 Viewing details for batch ${report.batchId}`, { duration: 2000 });
   };
-
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-slate-700">
         <thead>
           <tr className="bg-slate-800/50 text-slate-400">
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Report ID</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Herb Used</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Batch ID</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Date</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Herb Used</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Quantity (kg)</th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Date</th>
           </tr>
         </thead>
         <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
           {reports.length > 0 ? (
             reports.map((report, index) => (
-              <tr 
-                key={index} 
-                className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
-                onClick={() => handleReportClick(report)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{index + 1}</td>
+              <tr key={index} className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200" onClick={() => handleReportClick(report)}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">{report.batchId}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{report.herbUsed}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{report.batchId}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{report.date}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{report.quantityUsedKg || report.quantityUsed}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${report.status === 'Validated' ? 'bg-green-600/30 text-green-400' : 'bg-yellow-600/30 text-yellow-400'}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${report.status === 'completed' ? 'bg-green-600/30 text-green-400' : report.status === 'in-progress' ? 'bg-blue-600/30 text-blue-400' : report.status === 'cancelled' ? 'bg-red-600/30 text-red-400' : 'bg-yellow-600/30 text-yellow-400'}`}>
                     {report.status}
                   </span>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{report.effectiveDate || report.date}</td>
               </tr>
             ))
           ) : (
@@ -224,7 +177,6 @@ const ManufacturingHistory = ({ reports }) => {
   );
 };
 
-// Component for the manufacturer profile section
 const ManufacturerProfile = ({ profile }) => (
   <div className="space-y-4 text-slate-300">
     <div className="flex items-center space-x-4">
@@ -234,10 +186,6 @@ const ManufacturerProfile = ({ profile }) => (
       <div>
         <h4 className="text-xl font-bold text-white">{profile.manufacturerName}</h4>
         <p className="text-sm text-slate-400">Authorized Representative: {profile.authorizedRepresentative}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">GSTIN</p>
-        <p className="text-white font-medium">{profile.gstin}</p>
       </div>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -254,6 +202,10 @@ const ManufacturerProfile = ({ profile }) => (
         <p className="text-white font-medium">{profile.pan}</p>
       </div>
       <div>
+        <p className="text-sm text-slate-400">GSTIN</p>
+        <p className="text-white font-medium">{profile.gstin}</p>
+      </div>
+      <div>
         <p className="text-sm text-slate-400">Registered Address</p>
         <p className="text-white font-medium">{profile.registeredAddress}</p>
       </div>
@@ -263,7 +215,7 @@ const ManufacturerProfile = ({ profile }) => (
 
 // Main Dashboard Component
 const ManufacturerDashboard = () => {
-  const [activeSection, setActiveSection] = useState('upload');
+  const [activeSection, setActiveSection] = useState('history');
   const [manufacturingReports, setManufacturingReports] = useState([]);
   const [manufacturerProfile] = useState({
     manufacturerName: "VedaHerbs Ayurvedic Pvt. Ltd.",
@@ -275,42 +227,25 @@ const ManufacturerDashboard = () => {
     authorizedRepresentative: "Dr. Ramesh Sharma",
   });
 
-  React.useEffect(() => {
-    toast.success('🏭 Welcome to Manufacturer Dashboard!', {
-      duration: 3000,
-      position: 'top-right',
-    });
-  }, []);
+  // Use the useReportStore
+  const { isSubmitting, submitReport } = useReportStore();
 
-  const handleUploadSubmit = (newReport) => {
-    // Simulate a blockchain transaction by adding a report with a timestamp
-    const reportWithDate = {
-      ...newReport,
-      date: new Date().toLocaleDateString(),
-      status: 'Pending', // Status is pending until validated by a smart contract
-    };
-    setManufacturingReports(prev => [reportWithDate, ...prev]);
+  const handleUploadSubmit = async (formData) => {
+    const newReport = await submitReport({ reportType: 'manufacturer', data: formData });
+    if (newReport) {
+      setManufacturingReports(prev => [{ ...newReport, date: new Date().toLocaleDateString() }, ...prev]);
+      setActiveSection('history');
+    }
   };
 
   const handleSectionChange = (section) => {
-    const sectionMessages = {
-      'upload': '📤 Ready to submit a new manufacturing report',
-      'history': '📚 Viewing manufacturing history',
-      'profile': '👤 Manufacturer profile information'
-    };
-    
     setActiveSection(section);
-    toast(sectionMessages[section], {
-      duration: 2000,
-      position: 'top-right',
-      icon: '📋',
-    });
   };
 
   const renderSection = () => {
     switch (activeSection) {
       case 'upload':
-        return <UploadManufacturingReport onSubmit={handleUploadSubmit} />;
+        return <UploadManufacturingReport onSubmit={handleUploadSubmit} isSubmitting={isSubmitting} />;
       case 'history':
         return <ManufacturingHistory reports={manufacturingReports} />;
       case 'profile':
@@ -322,6 +257,7 @@ const ManufacturerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 p-8 text-white">
+      <Toaster />
       <div className="container mx-auto max-w-7xl">
         {/* Navbar */}
         <nav className="flex items-center justify-between py-4 mb-8 border-b border-slate-700/50">
@@ -336,7 +272,6 @@ const ManufacturerDashboard = () => {
             </button>
           </div>
         </nav>
-
         {/* Main Content */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Sidebar Navigation */}
@@ -344,23 +279,22 @@ const ManufacturerDashboard = () => {
             <Card>
               <nav className="space-y-2">
                 <button
-                  onClick={() => handleSectionChange('upload')}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 hover:bg-[#10b981]/20 ${activeSection === 'upload' ? 'bg-[#10b981]/30 border-l-4 border-[#34d399]' : 'text-slate-400'}`}
-                >
-                  <Upload className="h-5 w-5" />
-                  Upload New Report
-                </button>
-                <button
                   onClick={() => handleSectionChange('history')}
                   className={`w-full flex items-center gap-4 p-4 transition-all duration-300 hover:bg-green-600/20 ${activeSection === 'history' ? 'bg-green-600/30 border-l-4 border-green-500' : 'text-slate-400'}`}
                 >
                   <History className="h-5 w-5" />
                   History
                 </button>
+                <button
+                  onClick={() => handleSectionChange('upload')}
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 hover:bg-[#10b981]/20 ${activeSection === 'upload' ? 'bg-[#10b981]/30 border-l-4 border-[#34d399]' : 'text-slate-400'}`}
+                >
+                  <Upload className="h-5 w-5" />
+                  Upload New Report
+                </button>
               </nav>
             </Card>
           </div>
-
           {/* Dynamic Content */}
           <div className="md:col-span-3">
             <Card>
@@ -372,5 +306,4 @@ const ManufacturerDashboard = () => {
     </div>
   );
 };
-
 export default ManufacturerDashboard;

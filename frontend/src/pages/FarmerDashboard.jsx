@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronDown, Upload, History, User, MapPin, Calendar, Scale, Plus } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Upload, History, User, MapPin, Plus, Tag } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+import { useReportStore } from '../stores/useReportStore';
 
-// Reusable UI components for a consistent look
+// Reusable UI components
 const Card = ({ children }) => (
   <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 p-6 shadow-2xl space-y-6">
     {children}
@@ -14,14 +15,17 @@ const SectionTitle = ({ title }) => (
 );
 
 // Form for uploading a new harvest record
-const UploadHarvestForm = ({ onSubmit }) => {
+const UploadHarvestForm = ({ onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
-    herb: '',
-    weight: '',
-    season: '',
-    harvestProof: null,
+    herbSpecies: '',
+    harvestWeightKg: '',
+    harvestSeason: '',
     location: '',
+    notes: '',
+    regulatoryTags: [],
+    harvestProof: null,
   });
+  const [tagInput, setTagInput] = useState('');
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -31,67 +35,48 @@ const UploadHarvestForm = ({ onSubmit }) => {
     }));
   };
 
-  const handleCaptureLocation = () => {
-    const loadingToast = toast.loading('📍 Getting your location...', {
-      position: 'top-right',
-    });
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const coordinates = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-        setFormData(prev => ({
-          ...prev,
-          location: coordinates,
-        }));
-        
-        toast.dismiss(loadingToast);
-        toast.success(`📍 Location captured: ${coordinates}`, {
-          duration: 3000,
-          position: 'top-right',
-        });
-      }, (error) => {
-        console.error("Error getting location: ", error);
-        toast.dismiss(loadingToast);
-        toast.error("❌ Unable to retrieve location. Please allow geolocation access.", {
-          duration: 4000,
-          position: 'top-right',
-        });
-      });
-    } else {
-      toast.dismiss(loadingToast);
-      toast.error("❌ Geolocation is not supported by your browser.", {
-        duration: 4000,
-        position: 'top-right',
-      });
+  const handleAddTag = (e) => {
+    e.preventDefault();
+    if (tagInput.trim() && !formData.regulatoryTags.includes(tagInput.trim())) {
+      setFormData(prev => ({ 
+        ...prev, 
+        regulatoryTags: [...prev.regulatoryTags, tagInput.trim()] 
+      }));
+      setTagInput('');
+      toast.success(`🏷️ Tag "${tagInput.trim()}" added!`);
+    } else if (formData.regulatoryTags.includes(tagInput.trim())) {
+      toast.error('Tag already exists!');
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    const loadingToast = toast.loading('🌾 Submitting harvest record...', {
-      position: 'top-right',
-    });
+  const handleRemoveTag = (tagToRemove) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      regulatoryTags: prev.regulatoryTags.filter(tag => tag !== tagToRemove) 
+    }));
+    toast.success(`🗑️ Tag "${tagToRemove}" removed!`);
+  };
 
-    try {
-      setTimeout(() => {
-        console.log("Submitting new harvest record:", formData);
-        onSubmit(formData);
-        
-        toast.dismiss(loadingToast);
-        toast.success(`✅ Harvest record for ${formData.herb} (${formData.weight}kg) submitted successfully!`, {
-          duration: 4000,
-          position: 'top-right',
-        });
-        
-        setFormData({ herb: '', weight: '', season: '', harvestProof: null, location: '' });
-      }, 1500);
-    } catch (error) {
+  const handleCaptureLocation = () => {
+    const loadingToast = toast.loading('📍 Getting your location...');
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coordinates = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+          setFormData(prev => ({ ...prev, location: coordinates }));
+          toast.dismiss(loadingToast);
+          toast.success(`📍 Location captured: ${coordinates}`);
+        }, 
+        (error) => {
+          console.error("Error getting location: ", error);
+          toast.dismiss(loadingToast);
+          toast.error("❌ Unable to retrieve location. Please allow geolocation access.");
+        }
+      );
+    } else {
       toast.dismiss(loadingToast);
-      toast.error('❌ Failed to submit harvest record. Please try again.', {
-        duration: 4000,
-        position: 'top-right',
-      });
+      toast.error("❌ Geolocation is not supported by your browser.");
     }
   };
 
@@ -99,81 +84,137 @@ const UploadHarvestForm = ({ onSubmit }) => {
     const file = e.target.files[0];
     if (file) {
       const maxSize = 10 * 1024 * 1024; // 10MB
+      const allowedTypes = ['.png', '.jpg', '.jpeg'];
+      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      
       if (file.size > maxSize) {
-        toast.error('📁 File size too large. Please select an image under 10MB.', {
-          duration: 4000,
-        });
+        toast.error('📁 File size too large. Please select an image under 10MB.');
         e.target.value = '';
         return;
       }
       
-      toast.success(`📸 Image "${file.name}" selected successfully!`, {
-        duration: 2000,
-      });
+      if (!allowedTypes.includes(fileExtension)) {
+        toast.error('📁 Invalid file type. Please select a PNG, JPG, or JPEG file.');
+        e.target.value = '';
+        return;
+      }
       
+      toast.success(`📸 Image "${file.name}" selected successfully!`);
       setFormData(prev => ({ ...prev, harvestProof: file }));
     }
   };
 
-  const handleInputFocus = (fieldName) => {
-    const fieldMessages = {
-      herb: '🌿 Enter the herb species you harvested',
-      weight: '⚖️ Enter harvest weight in kilograms',
-      season: '🌞 Specify the harvest season (e.g., Summer 2024)',
-      location: '📍 Click the location button to capture GPS coordinates'
+  const validateForm = () => {
+    const requiredFields = {
+      herbSpecies: 'Herb Species',
+      harvestWeightKg: 'Harvest Weight',
+      harvestSeason: 'Harvest Season',
+      location: 'Location',
+      harvestProof: 'Harvest Proof'
     };
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!formData[field]) {
+        toast.error(`${label} is required!`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    toast(fieldMessages[fieldName], {
-      duration: 2000,
-      position: 'top-right',
-      icon: '💡',
-    });
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await onSubmit(formData);
+      
+      // Reset form
+      setFormData({
+        herbSpecies: '',
+        harvestWeightKg: '',
+        harvestSeason: '',
+        location: '',
+        notes: '',
+        regulatoryTags: [],
+        harvestProof: null,
+      });
+      setTagInput('');
+      
+      // Reset file input manually
+      const fileInput = document.getElementById('harvestProof');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    } catch (error) {
+      console.error('Error submitting harvest record:', error);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <SectionTitle title="New Harvest Record" />
+      
       <div>
-        <label htmlFor="herb" className="block text-sm font-medium text-slate-300">Herb Species</label>
+        <label htmlFor="herbSpecies" className="block text-sm font-medium text-slate-300 mb-1">
+          Herb Species <span className="text-red-400">*</span>
+        </label>
         <input 
           type="text" 
-          name="herb" 
-          id="herb" 
-          value={formData.herb} 
+          name="herbSpecies" 
+          id="herbSpecies" 
+          value={formData.herbSpecies} 
           onChange={handleChange} 
-          onFocus={() => handleInputFocus('herb')}
           required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
+          disabled={isSubmitting}
+          placeholder="e.g., Turmeric, Ashwagandha" 
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
+      
       <div>
-        <label htmlFor="weight" className="block text-sm font-medium text-slate-300">Harvest Weight (kg)</label>
+        <label htmlFor="harvestWeightKg" className="block text-sm font-medium text-slate-300 mb-1">
+          Harvest Weight (kg) <span className="text-red-400">*</span>
+        </label>
         <input 
           type="number" 
-          name="weight" 
-          id="weight" 
-          value={formData.weight} 
+          name="harvestWeightKg" 
+          id="harvestWeightKg" 
+          value={formData.harvestWeightKg} 
           onChange={handleChange} 
-          onFocus={() => handleInputFocus('weight')}
           required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
+          disabled={isSubmitting}
+          step="0.01" 
+          min="0" 
+          placeholder="e.g., 150.5" 
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
+      
       <div>
-        <label htmlFor="season" className="block text-sm font-medium text-slate-300">Harvest Season</label>
+        <label htmlFor="harvestSeason" className="block text-sm font-medium text-slate-300 mb-1">
+          Harvest Season <span className="text-red-400">*</span>
+        </label>
         <input 
           type="text" 
-          name="season" 
-          id="season" 
-          value={formData.season} 
+          name="harvestSeason" 
+          id="harvestSeason" 
+          value={formData.harvestSeason} 
           onChange={handleChange} 
-          onFocus={() => handleInputFocus('season')}
           required 
-          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none" 
+          disabled={isSubmitting}
+          placeholder="e.g., Summer 2024, Monsoon 2024" 
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
         />
       </div>
+      
       <div>
-        <label htmlFor="location" className="block text-sm font-medium text-slate-300">
-          Location (GPS Coordinates)
+        <label htmlFor="location" className="block text-sm font-medium text-slate-300 mb-1">
+          Location (GPS Coordinates) <span className="text-red-400">*</span>
         </label>
         <div className="mt-1 flex gap-2">
           <input 
@@ -181,22 +222,89 @@ const UploadHarvestForm = ({ onSubmit }) => {
             name="location" 
             id="location" 
             value={formData.location} 
-            onFocus={() => handleInputFocus('location')}
             readOnly 
             required 
-            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white cursor-not-allowed" 
+            disabled={isSubmitting}
+            placeholder="Click button to capture location" 
+            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white cursor-not-allowed disabled:opacity-50" 
           />
           <button 
             type="button" 
             onClick={handleCaptureLocation} 
-            className="flex-shrink-0 px-4 py-3 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300 active:scale-[0.98]"
+            disabled={isSubmitting}
+            className="flex-shrink-0 px-4 py-3 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <MapPin className="h-5 w-5" />
           </button>
         </div>
       </div>
+      
       <div>
-        <label htmlFor="harvestProof" className="block text-sm font-medium text-slate-300">Harvest Proof (PNG/JPG)</label>
+        <label htmlFor="notes" className="block text-sm font-medium text-slate-300 mb-1">
+          Additional Notes
+        </label>
+        <textarea 
+          name="notes" 
+          id="notes" 
+          value={formData.notes} 
+          onChange={handleChange} 
+          disabled={isSubmitting}
+          rows="3" 
+          placeholder="Any additional information about the harvest..." 
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed" 
+        />
+      </div>
+      
+      <div>
+        <label htmlFor="tagInput" className="block text-sm font-medium text-slate-300 mb-1">
+          Regulatory Tags
+        </label>
+        <div className="mt-1 flex gap-2">
+          <input 
+            type="text" 
+            id="tagInput" 
+            value={tagInput} 
+            onChange={(e) => setTagInput(e.target.value)} 
+            disabled={isSubmitting}
+            placeholder="e.g., Organic, FSSAI-Approved" 
+            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleAddTag(e);
+              }
+            }} 
+          />
+          <button 
+            type="button" 
+            onClick={handleAddTag} 
+            disabled={isSubmitting || !tagInput.trim()}
+            className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Tag className="h-5 w-5" />
+          </button>
+        </div>
+        
+        {/* Display Added Tags */}
+        {formData.regulatoryTags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {formData.regulatoryTags.map((tag, index) => (
+              <span 
+                key={index} 
+                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200" 
+                onClick={() => !isSubmitting && handleRemoveTag(tag)}
+              >
+                {tag}
+                {!isSubmitting && <span className="text-blue-400 hover:text-blue-200">×</span>}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div>
+        <label htmlFor="harvestProof" className="block text-sm font-medium text-slate-300 mb-1">
+          Harvest Proof (PNG/JPG) <span className="text-red-400">*</span>
+        </label>
         <input 
           type="file" 
           name="harvestProof" 
@@ -204,11 +312,34 @@ const UploadHarvestForm = ({ onSubmit }) => {
           accept=".png,.jpg,.jpeg" 
           onChange={handleFileChange} 
           required 
-          className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] file:transition-colors file:duration-300" 
+          disabled={isSubmitting}
+          className="mt-1 block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] file:transition-colors file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
         />
+        <p className="mt-2 text-xs text-slate-400">
+          Upload a clear image showing your harvest. Maximum file size: 10MB
+        </p>
+        {formData.harvestProof && (
+          <p className="mt-1 text-xs text-green-400">
+            ✓ Selected: {formData.harvestProof.name}
+          </p>
+        )}
       </div>
-      <button type="submit" className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98]">
-        <Plus className="h-4 w-4 mr-2" /> Upload Record
+      
+      <button 
+        type="submit" 
+        disabled={isSubmitting} 
+        className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (
+          <>
+            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent mr-2"></div>
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Plus className="h-4 w-4 mr-2" /> Submit Harvest Record
+          </>
+        )}
       </button>
     </form>
   );
@@ -217,85 +348,120 @@ const UploadHarvestForm = ({ onSubmit }) => {
 // Component to display history of uploaded records
 const HarvestHistory = ({ records }) => {
   const handleRecordClick = (record) => {
-    toast.success(`🌾 Viewing harvest record for ${record.herb}`, {
-      duration: 2000,
-    });
+    toast.success(`🌾 Viewing harvest record for ${record.herbSpecies || record.herb}`);
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-slate-700">
-        <thead>
-          <tr className="bg-slate-800/50 text-slate-400">
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Herb</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Weight (kg)</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Season</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Date</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Location</th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-          </tr>
-        </thead>
-        <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
-          {records.length > 0 ? (
-            records.map((record, index) => (
-              <tr 
-                key={index} 
-                className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200"
-                onClick={() => handleRecordClick(record)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.herb}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.weight}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.season}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.date}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.location}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${record.status === 'Validated' ? 'bg-green-600/30 text-green-400' : 'bg-yellow-600/30 text-yellow-400'}`}>
-                    {record.status}
-                  </span>
-                </td>
+    <div className="space-y-4">
+      <SectionTitle title="Harvest Records History" />
+      
+      {records.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-700">
+            <thead>
+              <tr className="bg-slate-800/50 text-slate-400">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Herb Species
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Weight (kg)
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Season
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Status
+                </th>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="6" className="px-6 py-4 text-center text-sm text-slate-500">
-                🌾 No records found. Submit your first harvest record!
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
+              {records.map((record, index) => (
+                <tr 
+                  key={record.id || index} 
+                  className="hover:bg-slate-800/50 cursor-pointer transition-colors duration-200" 
+                  onClick={() => handleRecordClick(record)}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {record.herbSpecies || record.herb}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {record.harvestWeightKg || record.weight}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {record.harvestSeason || record.season}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {record.date}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium ${
+                      record.status === 'Validated' ? 'bg-green-600/30 text-green-400' : 'bg-yellow-600/30 text-yellow-400'
+                    }`}>
+                      {record.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <User className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+          <p className="text-slate-500 text-lg mb-2">No harvest records found</p>
+          <p className="text-slate-400 text-sm">Submit your first harvest record to get started!</p>
+        </div>
+      )}
     </div>
   );
 };
 
 // Component for the user profile section
 const UserProfile = ({ profile }) => (
-  <div className="space-y-4 text-slate-300">
-    <div className="flex items-center space-x-4">
-      <div className="p-4 bg-slate-700/50 border border-slate-600">
-        <User className="h-12 w-12 text-[#34d399]" />
+  <div className="space-y-6">
+    <SectionTitle title="Farmer Profile" />
+    
+    <div className="space-y-4 text-slate-300">
+      <div className="flex items-center space-x-4">
+        <div className="p-4 bg-slate-700/50 border border-slate-600">
+          <User className="h-12 w-12 text-[#34d399]" />
+        </div>
+        <div>
+          <h4 className="text-xl font-bold text-white">{profile.fpoName}</h4>
+          <p className="text-sm text-slate-400">
+            Authorized Representative: {profile.authorizedRepresentative}
+          </p>
+        </div>
       </div>
-      <div>
-        <h4 className="text-xl font-bold text-white">{profile.fpoName}</h4>
-        <p className="text-sm text-slate-400">Authorized Representative: {profile.authorizedRepresentative}</p>
-      </div>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <p className="text-sm text-slate-400">Registration Number</p>
-        <p className="text-white font-medium">{profile.regNumber}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">PAN</p>
-        <p className="text-white font-medium">{profile.pan}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">GSTIN</p>
-        <p className="text-white font-medium">{profile.gstin}</p>
-      </div>
-      <div>
-        <p className="text-sm text-slate-400">Registered Address</p>
-        <p className="text-white font-medium">{profile.registeredAddress}</p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <p className="text-sm text-slate-400 font-medium">Registration Number</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
+            {profile.regNumber}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-slate-400 font-medium">PAN</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
+            {profile.pan}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-slate-400 font-medium">GSTIN</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
+            {profile.gstin}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-slate-400 font-medium">Registered Address</p>
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2">
+            {profile.registeredAddress}
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -303,7 +469,7 @@ const UserProfile = ({ profile }) => (
 
 // Main Dashboard Component
 const FarmerDashboard = () => {
-  const [activeSection, setActiveSection] = useState('upload');
+  const [activeSection, setActiveSection] = useState('history');
   const [harvestRecords, setHarvestRecords] = useState([]);
   const [fpoProfile] = useState({
     fpoName: "Green Harvest Producer Company Ltd.",
@@ -314,59 +480,125 @@ const FarmerDashboard = () => {
     authorizedRepresentative: "Mr. Ramesh Kumar",
   });
 
+  // Use the useReportStore
+  const { isSubmitting, submitReport } = useReportStore();
+
+  // Welcome toast when component mounts - FIXED DURATION
   React.useEffect(() => {
-    toast.success('🌾 Welcome to Farmer Dashboard!', {
-      duration: 3000,
-      position: 'top-right',
-    });
+    const welcomeTimer = setTimeout(() => {
+      toast('🌾 Welcome to your Farmer Dashboard!', {
+        icon: '👋',
+        duration: 4000, // 4 seconds duration
+      });
+    }, 800);
+
+    return () => {
+      clearTimeout(welcomeTimer);
+    };
   }, []);
 
-  const handleUploadSubmit = (newRecord) => {
-    const recordWithDate = {
-      ...newRecord,
-      date: new Date().toLocaleDateString(),
-      status: 'Pending',
-    };
-    setHarvestRecords(prev => [recordWithDate, ...prev]);
+  const handleUploadSubmit = async (formData) => {
+    try {
+      const newRecord = await submitReport({ 
+        reportType: 'farmer', 
+        data: formData 
+      });
+      
+      if (newRecord) {
+        setHarvestRecords(prev => [
+          { 
+            ...newRecord, 
+            id: Date.now(),
+            date: new Date().toLocaleDateString(), 
+            status: 'Pending' 
+          }, 
+          ...prev
+        ]);
+        
+        // Switch to history view after successful submission
+        setTimeout(() => {
+          setActiveSection('history');
+        }, 1000);
+        
+        toast.success(`✅ Harvest record for ${formData.herbSpecies} (${formData.harvestWeightKg}kg) submitted successfully!`);
+      }
+    } catch (error) {
+      console.error('Error submitting harvest record:', error);
+      toast.error('Failed to submit harvest record. Please try again.');
+    }
   };
 
   const handleSectionChange = (section) => {
-    const sectionMessages = {
-      'upload': '📤 Ready to submit a new harvest record',
-      'history': '📚 Viewing harvest history',
-      'profile': '👤 FPO profile information'
-    };
-    
     setActiveSection(section);
-    toast(sectionMessages[section], {
-      duration: 2000,
-      position: 'top-right',
-      icon: '📋',
-    });
   };
 
   const renderSection = () => {
     switch (activeSection) {
       case 'upload':
-        return <UploadHarvestForm onSubmit={handleUploadSubmit} />;
+        return (
+          <UploadHarvestForm 
+            onSubmit={handleUploadSubmit} 
+            isSubmitting={isSubmitting} 
+          />
+        );
       case 'history':
         return <HarvestHistory records={harvestRecords} />;
       case 'profile':
         return <UserProfile profile={fpoProfile} />;
       default:
-        return null;
+        return <HarvestHistory records={harvestRecords} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 p-8 text-white">
+      <Toaster 
+        position="top-right"
+        containerClassName="z-50"
+        containerStyle={{
+          zIndex: 9999,
+        }}
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#1e293b',
+            color: '#f8fafc',
+            border: '1px solid #475569',
+            fontSize: '14px',
+            maxWidth: '400px',
+          },
+          success: {
+            duration: 4000, // Increased duration for success messages
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff',
+            },
+          },
+          loading: {
+            duration: Infinity,
+          },
+        }}
+      />
+      
       <div className="container mx-auto max-w-7xl">
         {/* Navbar */}
-        <nav className="flex items-center justify-between py-4 mb-8 border-b border-slate-700/50">
-          <h1 className="text-2xl font-bold">Farmer Dashboard</h1>
+        <nav className="flex items-center justify-between py-6 mb-8 border-b border-slate-700/50">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Farmer Dashboard</h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Manage harvest records and farming documentation
+            </p>
+          </div>
           <div className="relative">
-            <button 
-              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white"
+            <button
+              className="flex items-center gap-2 px-6 py-3 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white"
               onClick={() => handleSectionChange('profile')}
             >
               <User className="h-5 w-5" />
@@ -376,31 +608,39 @@ const FarmerDashboard = () => {
         </nav>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar Navigation */}
-          <div className="md:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-4">
             <Card>
               <nav className="space-y-2">
-                <button 
-                  onClick={() => handleSectionChange('upload')}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 hover:bg-[#10b981]/20 ${activeSection === 'upload' ? 'bg-[#10b981]/30 border-l-4 border-[#34d399]' : 'text-slate-400'}`}
-                >
-                  <Upload className="h-5 w-5" />
-                  Upload New Record
-                </button>
-                <button 
+                <button
                   onClick={() => handleSectionChange('history')}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 hover:bg-green-600/20 ${activeSection === 'history' ? 'bg-green-600/30 border-l-4 border-green-500' : 'text-slate-400'}`}
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left ${
+                    activeSection === 'history' 
+                      ? 'bg-green-600/30 border-l-4 border-green-500 text-green-300' 
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                  }`}
                 >
-                  <History className="h-5 w-5" />
-                  History
+                  <History className="h-5 w-5 flex-shrink-0" />
+                  <span>History</span>
+                </button>
+                <button
+                  onClick={() => handleSectionChange('upload')}
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left ${
+                    activeSection === 'upload' 
+                      ? 'bg-[#10b981]/30 border-l-4 border-[#34d399] text-[#34d399]' 
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                  }`}
+                >
+                  <Upload className="h-5 w-5 flex-shrink-0" />
+                  <span>Upload New Record</span>
                 </button>
               </nav>
             </Card>
           </div>
 
           {/* Dynamic Content */}
-          <div className="md:col-span-3">
+          <div className="lg:col-span-3">
             <Card>
               {renderSection()}
             </Card>
