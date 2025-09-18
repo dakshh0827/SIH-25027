@@ -105,7 +105,6 @@ export const harvestSchema = z.object({
 
 // Schema for creating a new Manufacturing Report
 export const manufacturingReportSchema = z.object({
-  batchId: z.string().min(1, "Batch ID is required."),
   herbUsed: z.string().min(1, "Herb used is required."),
   quantityUsedKg: z
     .string()

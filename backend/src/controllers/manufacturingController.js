@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 export const createManufacturingReport = async (req, res) => {
   try {
     const {
-      batchId,
       herbUsed,
       quantityUsedKg,
       processingSteps,
@@ -15,7 +14,15 @@ export const createManufacturingReport = async (req, res) => {
       regulatoryTags,
     } = req.body;
 
-    const identifier = `MFG-${batchId}-${Date.now().toString().slice(-6)}`;
+    const date = new Date();
+    const batchId = `${herbUsed
+      .substring(0, 4)
+      .toUpperCase()}-${date.getFullYear()}${(date.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${Date.now().toString().slice(-4)}`;
+    // This will create a Batch ID like: ASHW-202509-1234
+
+    const identifier = `MFG-${batchId}`;
 
     const manufacturerProfile = await prisma.manufacturerProfile.findUnique({
       where: { userId: req.user.id },
