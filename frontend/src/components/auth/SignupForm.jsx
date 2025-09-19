@@ -178,7 +178,7 @@ const SignupForm = () => {
                         background: '#1e293b',
                         color: '#f8fafc',
                         border: '1px solid #475569',
-                        borderRadius: '8px',
+                        borderRadius: '0px', // Changed from '8px' to '0px'
                         fontSize: '14px',
                         maxWidth: '400px',
                     },
@@ -203,13 +203,13 @@ const SignupForm = () => {
             />
             
             <div className="max-w-xl w-full mx-4">
-                <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-lg p-8 shadow-2xl">
+                <div className="bg-slate-900/40 backdrop-blur-md border border-slate-700/50 p-8 shadow-2xl"> {/* Removed rounded-lg */}
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-2xl font-bold text-white">Create an Account</h2>
                             <p className="text-sm text-slate-400 mt-1">{getStepTitle()} - Step {step} of 3</p>
                         </div>
-                        <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <div className="p-2 bg-blue-500/20"> {/* Removed rounded-lg */}
                             <Waves className="h-6 w-6 text-[#34d399]" />
                         </div>
                     </div>
@@ -220,9 +220,9 @@ const SignupForm = () => {
                             <span className="text-xs text-slate-400">Progress</span>
                             <span className="text-xs text-slate-400">{Math.round((step / 3) * 100)}%</span>
                         </div>
-                        <div className="w-full bg-slate-700 rounded-full h-2">
+                        <div className="w-full bg-slate-700 h-2"> {/* Removed rounded-full */}
                             <div 
-                                className="bg-[#34d399] h-2 rounded-full transition-all duration-300 ease-in-out" 
+                                className="bg-[#34d399] h-2 transition-all duration-300 ease-in-out" // Removed rounded-full
                                 style={{ width: `${(step / 3) * 100}%` }}
                             />
                         </div>

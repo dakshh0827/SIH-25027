@@ -7,12 +7,15 @@ const prisma = new PrismaClient();
 
 export const register = async (req, res) => {
   try {
-    const { role, fullName, email, password, ...specificProfileData } = req.body;
+    const { role, fullName, email, password, ...specificProfileData } =
+      req.body;
 
     // Check if user with this email already exists
     const userExists = await prisma.user.findUnique({ where: { email } });
     if (userExists) {
-      return res.status(400).json({ message: "User with this email already exists." });
+      return res
+        .status(400)
+        .json({ message: "User with this email already exists." });
     }
 
     // Hash the password
@@ -44,7 +47,8 @@ export const register = async (req, res) => {
               pan: specificProfileData.pan,
               gstin: specificProfileData.gstin,
               registeredAddress: specificProfileData.registeredAddress,
-              authorizedRepresentative: specificProfileData.authorizedRepresentative,
+              authorizedRepresentative:
+                specificProfileData.authorizedRepresentative,
             },
           });
           break;
@@ -59,7 +63,8 @@ export const register = async (req, res) => {
               pan: specificProfileData.pan,
               gstin: specificProfileData.gstin,
               registeredAddress: specificProfileData.registeredAddress,
-              authorizedRepresentative: specificProfileData.authorizedRepresentative,
+              authorizedRepresentative:
+                specificProfileData.authorizedRepresentative,
             },
           });
           break;
@@ -69,12 +74,15 @@ export const register = async (req, res) => {
             data: {
               userId: user.id,
               labName: specificProfileData.labName,
-              nablAccreditationNumber: specificProfileData.nablAccreditationNumber,
-              scopeOfNablAccreditation: specificProfileData.scopeOfNablAccreditation,
+              nablAccreditationNumber:
+                specificProfileData.nablAccreditationNumber,
+              scopeOfNablAccreditation:
+                specificProfileData.scopeOfNablAccreditation,
               pan: specificProfileData.pan,
               gstin: specificProfileData.gstin,
               registeredAddress: specificProfileData.registeredAddress,
-              authorizedRepresentative: specificProfileData.authorizedRepresentative,
+              authorizedRepresentative:
+                specificProfileData.authorizedRepresentative,
             },
           });
           break;
@@ -90,7 +98,8 @@ export const register = async (req, res) => {
             const stream = cloudinary.uploader.upload_stream(
               { folder: "admin_proofs" },
               (error, result) => {
-                if (error) return reject(new Error("Cloudinary upload failed."));
+                if (error)
+                  return reject(new Error("Cloudinary upload failed."));
                 resolve(result);
               }
             );
@@ -137,18 +146,18 @@ export const register = async (req, res) => {
         role: result.user.role,
       },
     });
-
   } catch (error) {
-    console.error('Registration error:', error);
-    
+    console.error("Registration error:", error);
+
     // This block ensures any error (from Prisma, Cloudinary, etc.) sends a response
     let message = "Server error during registration.";
-    if (error.code === 'P2002') {
-        message = "A user with the provided unique details (like PAN, GSTIN, or Email) already exists.";
+    if (error.code === "P2002") {
+      message =
+        "A user with the provided unique details (like PAN, GSTIN, or Email) already exists.";
     } else if (error.message) {
-        message = error.message;
+      message = error.message;
     }
-    
+
     res.status(500).json({ message });
   }
 };
@@ -175,16 +184,24 @@ export const login = async (req, res) => {
     let profile = null;
     switch (user.role) {
       case Role.farmer:
-        profile = await prisma.farmerProfile.findUnique({ where: { userId: user.id } });
+        profile = await prisma.farmerProfile.findUnique({
+          where: { userId: user.id },
+        });
         break;
       case Role.manufacturer:
-        profile = await prisma.manufacturerProfile.findUnique({ where: { userId: user.id } });
+        profile = await prisma.manufacturerProfile.findUnique({
+          where: { userId: user.id },
+        });
         break;
       case Role.lab:
-        profile = await prisma.laboratoryProfile.findUnique({ where: { userId: user.id } });
+        profile = await prisma.laboratoryProfile.findUnique({
+          where: { userId: user.id },
+        });
         break;
       case Role.admin:
-        profile = await prisma.adminProfile.findUnique({ where: { userId: user.id } });
+        profile = await prisma.adminProfile.findUnique({
+          where: { userId: user.id },
+        });
         break;
     }
 
@@ -206,7 +223,7 @@ export const login = async (req, res) => {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
-        role: user.role
+        role: user.role,
       },
     });
   } catch (error) {
@@ -218,14 +235,14 @@ export const login = async (req, res) => {
 export const getProfile = async (req, res) => {
   try {
     // Debug logging
-    console.log('req.user:', req.user);
-    console.log('req.tokenPayload:', req.tokenPayload);
-    
+    console.log("req.user:", req.user);
+    console.log("req.tokenPayload:", req.tokenPayload);
+
     const userId = req.user.id; // Changed from req.user.userId to req.user.id
-    console.log('Extracted userId:', userId);
-    
+    console.log("Extracted userId:", userId);
+
     // First get the user data
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -233,8 +250,8 @@ export const getProfile = async (req, res) => {
         email: true,
         role: true,
         createdAt: true,
-        updatedAt: true
-      }
+        updatedAt: true,
+      },
     });
 
     if (!user) {
@@ -245,7 +262,7 @@ export const getProfile = async (req, res) => {
     let profile = null;
     switch (user.role) {
       case Role.farmer:
-        profile = await prisma.farmerProfile.findUnique({ 
+        profile = await prisma.farmerProfile.findUnique({
           where: { userId: user.id },
           select: {
             id: true,
@@ -258,11 +275,11 @@ export const getProfile = async (req, res) => {
             // idProofUrl: true, // Removed - this field doesn't exist in FarmerProfile
             // createdAt: true,
             // updatedAt: true
-          }
+          },
         });
         break;
       case Role.manufacturer:
-        profile = await prisma.manufacturerProfile.findUnique({ 
+        profile = await prisma.manufacturerProfile.findUnique({
           where: { userId: user.id },
           select: {
             id: true,
@@ -273,11 +290,11 @@ export const getProfile = async (req, res) => {
             gstin: true,
             registeredAddress: true,
             authorizedRepresentative: true,
-          }
+          },
         });
         break;
       case Role.lab:
-        profile = await prisma.laboratoryProfile.findUnique({ 
+        profile = await prisma.laboratoryProfile.findUnique({
           where: { userId: user.id },
           select: {
             id: true,
@@ -288,18 +305,18 @@ export const getProfile = async (req, res) => {
             gstin: true,
             registeredAddress: true,
             authorizedRepresentative: true,
-          }
+          },
         });
         break;
       case Role.admin:
-        profile = await prisma.adminProfile.findUnique({ 
+        profile = await prisma.adminProfile.findUnique({
           where: { userId: user.id },
           select: {
             id: true,
             idProofUrl: true,
-            createdAt: true,
-            updatedAt: true
-          }
+            // createdAt: true,
+            // updatedAt: true
+          },
         });
         break;
       default:
@@ -316,7 +333,7 @@ export const getProfile = async (req, res) => {
       profile,
     });
   } catch (error) {
-    console.error('Get profile error:', error);
+    console.error("Get profile error:", error);
     res.status(500).json({ message: "Server error retrieving profile." });
   }
 };
@@ -326,14 +343,14 @@ export const logout = async (req, res) => {
     // Note: With JWT, we can't invalidate the token on the server side
     // The token will remain valid until it expires
     // For better security, you might want to implement a token blacklist
-    
+
     res.json({
       message: "Logged out successfully",
       // Instruct the client to remove the token
       clearToken: true,
     });
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error("Logout error:", error);
     res.status(500).json({ message: "Server error during logout." });
   }
 };
