@@ -8,6 +8,9 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import harvestRoutes from "./routes/harvestRoutes.js";
 import manufacturingRoutes from "./routes/manufacturingRoutes.js";
 import labRoutes from "./routes/labRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import { initializeBlockchainConnection } from './blockchain.js';
+import herbRoutes from './routes/herbRoutes.js';
 
 const app = express();
 
@@ -46,6 +49,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/harvests", harvestRoutes);
 app.use("/api/manufacturing_reports", manufacturingRoutes);
 app.use("/api/lab_reports", labRoutes);
+app.use("/api/admin", adminRoutes);
+app.use('/api/herbs', herbRoutes);
 
 // ✅ Health check
 app.get("/", (req, res) => {
@@ -54,3 +59,12 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server started on port ${PORT}`));
+
+// initializeBlockchainConnection()
+//     .then(() => {
+//         app.listen(PORT, () => console.log(`Server running in ES Module mode on port ${PORT}`));
+//     })
+//     .catch(error => {
+//         console.error('Fatal Error: Failed to connect to blockchain and start server.', error);
+//         process.exit(1);
+//     });
