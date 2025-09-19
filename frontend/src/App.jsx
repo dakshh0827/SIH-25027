@@ -10,6 +10,7 @@ import ManufacturerDashboard from './pages/ManufacturerDashboard';
 import LabsDashboard from './pages/LabsDashboard';
 import Navigation from './components/common/Navigation';
 import SignupForm from './components/auth/SignupForm';
+import AdminDashboard from './pages/AdminDashboard';
 
 const App = () => {
     const { userType } = useAuthStore();
@@ -17,7 +18,7 @@ const App = () => {
 
     React.useEffect(() => {
         if (userType === 'admin') {
-            navigate('/admin-dashboard');
+            navigate('/admin');
         } else if (userType === 'farmer') {
             navigate('/farmer');
         } else if (userType === 'manufacturer') {
@@ -97,6 +98,9 @@ const App = () => {
                     )}
                     {userType === 'lab' && (
                         <Route path="/labs" element={<LabsDashboard />} />
+                    )}
+                    {userType === 'admin' && (
+                        <Route path="/admin" element={<AdminDashboard />} />
                     )}
 
                     {/* The catch-all route should be the last one in the list */}

@@ -29,12 +29,11 @@ model User {
 }
 
 model AdminProfile {
-  id              String  @id @default(auto()) @map("_id") @db.ObjectId
-  adminId         String  @unique
-  idProofUrl      String
-  metamaskAddress String  @unique
-  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId          String  @unique @db.ObjectId
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  adminId         String  @unique // This is now auto-generated
+  idProofUrl      String
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String  @unique @db.ObjectId
 }
 
 model FarmerProfile {

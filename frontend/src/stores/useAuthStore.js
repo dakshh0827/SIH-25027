@@ -214,6 +214,103 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  getAdminHarvestReports: async () => {
+  const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+  if (userType !== 'admin') return [];
+
+  set({ isLoading: true });
+  
+  try {
+    showInfo('Fetching all harvest reports...');
+    const response = await authenticatedFetch('/api/admin/harvests');
+    
+    const records = response?.data || response || [];
+    const safeRecords = Array.isArray(records) ? records : [];
+    
+    const formattedRecords = safeRecords.map(record => ({
+      ...record,
+      id: record.id || record._id || Date.now() + Math.random(),
+      createdAt: record.createdAt || new Date().toISOString(),
+      status: record.status || 'completed',
+    }));
+
+    set({ isLoading: false });
+    toast.dismiss();
+    showInfo(`Loaded ${formattedRecords.length} harvest reports.`);
+    return formattedRecords;
+  } catch (error) {
+    handleApiError(error, 'Failed to fetch harvest reports.');
+    set({ isLoading: false });
+    throw error;
+  }
+},
+
+getAdminManufacturingReports: async () => {
+  const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+  if (userType !== 'admin') return [];
+
+  set({ isLoading: true });
+  
+  try {
+    showInfo('Fetching all manufacturing reports...');
+    const response = await authenticatedFetch('/api/admin/manufacturing_reports');
+    
+    const records = response?.data || response || [];
+    const safeRecords = Array.isArray(records) ? records : [];
+    
+    const formattedRecords = safeRecords.map(record => ({
+      ...record,
+      id: record.id || record._id || Date.now() + Math.random(),
+      createdAt: record.createdAt || new Date().toISOString(),
+      date: record.effectiveDate || record.createdAt || new Date().toLocaleDateString(),
+    }));
+
+    set({ isLoading: false });
+    toast.dismiss();
+    showInfo(`Loaded ${formattedRecords.length} manufacturing reports.`);
+    return formattedRecords;
+  } catch (error) {
+    handleApiError(error, 'Failed to fetch manufacturing reports.');
+    set({ isLoading: false });
+    throw error;
+  }
+},
+
+getAdminLabReports: async () => {
+  const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+  if (userType !== 'admin') return [];
+
+  set({ isLoading: true });
+  
+  try {
+    showInfo('Fetching all lab reports...');
+    const response = await authenticatedFetch('/api/admin/lab_reports');
+    
+    const records = response?.data || response || [];
+    const safeRecords = Array.isArray(records) ? records : [];
+    
+    const formattedRecords = safeRecords.map(record => ({
+      ...record,
+      id: record.id || record._id || Date.now() + Math.random(),
+      createdAt: record.createdAt || new Date().toISOString(),
+      date: record.issuedDate || record.createdAt || new Date().toLocaleDateString(),
+      status: record.status || 'final',
+      testType: record.testType || 'Unknown',
+      manufacturingReportId: record.manufacturingReportId || 'N/A'
+    }));
+
+    set({ isLoading: false });
+    toast.dismiss();
+    showInfo(`Loaded ${formattedRecords.length} lab reports.`);
+    return formattedRecords;
+  } catch (error) {
+    console.error('Lab reports fetch error:', error);
+    handleApiError(error, 'Failed to fetch lab reports.');
+    set({ isLoading: false });
+    throw error;
+  }
+},
+
   authenticatedFetch: async (url, options = {}) => {
     const { token } = get();
     if (!token) {

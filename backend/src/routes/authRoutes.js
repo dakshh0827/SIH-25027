@@ -1,27 +1,24 @@
+// File: routes/authRoutes.js
+
 import express from "express";
 import { register, login, getProfile, logout } from "../controllers/authController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import upload from "../middleware/multerMiddleware.js";
-import { validate } from "../middleware/validationMiddleware.js";
-import {
-  registerSchema,
-  loginSchema,
-  checkEmailSchema,
-} from "../utils/validationSchemas.js";
+// ... other imports
 
 const router = express.Router();
 
 // Public routes
 router.post(
   "/register",
-  upload.single("idProofUrl"),
-  // validate(registerSchema),
+  // Key Fix: Change the field name to 'file' to match the frontend FormData
+  upload.single("file"),
   register
 );
 
 router.post("/login", login);
 
-// Protected routes (require authentication)
+// Protected routes
 router.get("/profile", authenticateToken, getProfile);
 router.post("/logout", authenticateToken, logout);
 

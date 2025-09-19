@@ -1,81 +1,89 @@
+// File: src/components/Auth/AdminDetailsStep.jsx
+
 import React from 'react';
-import { ArrowRight, ChevronLeft } from 'lucide-react';
+import { ArrowRight, ChevronLeft, FileImage } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import toast from 'react-hot-toast';
 
-// Zod schema for Admin details
+// Zod schema for validation
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
 const adminDetailsSchema = z.object({
-  govtId: z.string().min(1, 'Government ID is required.'),
-  govtIdImage: z.any().refine((fileList) => fileList?.length > 0, 'ID Proof upload is required.'),
-  metamaskAccount: z.string().min(1, 'Metamask account is required.')
-    .startsWith('0x', 'Metamask account address must start with 0x.')
-    .length(42, 'Metamask account address must be 42 characters long.'),
+  idProofImage: z
+    .any()
+    .refine((files) => files?.length === 1, "ID Proof image is required.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      ".jpg, .jpeg, .png and .webp files are accepted."
+    ),
 });
 
 const AdminDetailsStep = ({ onNext, onBack }) => {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, watch } = useForm({
     resolver: zodResolver(adminDetailsSchema),
   });
 
+  const idProofImage = watch("idProofImage");
+
+  // Show validation error toasts
+  React.useEffect(() => {
+    if (errors.idProofImage) {
+      toast.error(`❌ ${errors.idProofImage.message}`, {
+        duration: 4000,
+        id: 'validation-error',
+      });
+    }
+  }, [errors.idProofImage]);
+
   const onSubmit = (data) => {
-    onNext(data);
+    toast.success('✅ ID Proof selected!', { id: 'step-success' });
+    // Pass the file object to the parent
+    onNext({ idProofImage: data.idProofImage[0] });
   };
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl text-white font-semibold">Step 3: Admin Details</h3>
-      <p className="text-slate-400">Provide the following details for verification as an NCCR Admin.</p>
-      
+      <h3 className="text-xl text-white font-semibold">Step 3: Admin Verification</h3>
+      <p className="text-slate-400">Please upload a government-issued ID for verification.</p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
-          <label htmlFor="govtId" className="block text-sm font-medium text-slate-300">NCCR Govt. ID</label>
-          <input
-            type="text"
-            id="govtId"
-            {...register("govtId")}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-          />
-          {errors.govtId && <p className="mt-1 text-sm text-red-400">{errors.govtId.message}</p>}
+          <label htmlFor="idProofImage" className="block text-sm font-medium text-slate-300 mb-1">ID Proof Image</label>
+          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-600 border-dashed hover:border-[#34d399] transition-colors duration-300">
+            <div className="space-y-1 text-center">
+              <FileImage className="mx-auto h-12 w-12 text-slate-400" />
+              <div className="flex text-sm text-slate-400">
+                <label
+                  htmlFor="idProofImage"
+                  className="relative cursor-pointer font-medium text-[#34d399] hover:text-[#10b981] focus-within:outline-none"
+                >
+                  <span>Upload a file</span>
+                  <input id="idProofImage" {...register("idProofImage")} type="file" className="sr-only" />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className="text-xs text-slate-500">PNG, JPG, JPEG up to 5MB</p>
+              {idProofImage?.[0] && <p className="text-sm text-green-400 pt-2">Selected: {idProofImage[0].name}</p>}
+            </div>
+          </div>
         </div>
-        
-        <div>
-          <label htmlFor="govtIdImage" className="block text-sm font-medium text-slate-300">
-            Upload ID Proof
-          </label>
-          <input
-            type="file"
-            id="govtIdImage"
-            {...register("govtIdImage")}
-            className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          {errors.govtIdImage && <p className="mt-1 text-sm text-red-400">{errors.govtIdImage.message}</p>}
-        </div>
-        
-        <div>
-          <label htmlFor="metamaskAccount" className="block text-sm font-medium text-slate-300">Metamask Account Address</label>
-          <input
-            type="text"
-            id="metamaskAccount"
-            {...register("metamaskAccount")}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white shadow-sm transition-all duration-300 hover:border-blue-400 focus:border-blue-400 focus:ring-1 focus:outline-none"
-          />
-          {errors.metamaskAccount && <p className="mt-1 text-sm text-red-400">{errors.metamaskAccount.message}</p>}
-        </div>
-        
-        <div className="flex gap-4 mt-6">
+
+        <div className="flex gap-4">
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
+            className="flex-1 flex items-center justify-center px-4 py-3 border border-[#34d399] text-[#34d399] font-semibold transition-all hover:bg-[#10b981] hover:text-white"
           >
             <ChevronLeft className="h-4 w-4 mr-2" /> Back
           </button>
           <button
             type="submit"
-            className="flex-1 flex items-center justify-center px-4 py-3 border border-slate-600 text-slate-300 font-semibold transition-all duration-300 hover:bg-slate-600 hover:text-white active:scale-[0.98]"
+            className="flex-1 flex items-center justify-center px-4 py-3 border border-[#10b981] bg-[#10b981] text-white font-semibold transition-all hover:bg-transparent hover:text-[#34d399]"
           >
-            Submit <ArrowRight className="h-4 w-4 ml-2" />
+            Complete Signup <ArrowRight className="h-4 w-4 ml-2" />
           </button>
         </div>
       </form>
