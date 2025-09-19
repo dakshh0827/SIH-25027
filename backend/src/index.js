@@ -60,11 +60,11 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server started on port ${PORT}`));
 
-// initializeBlockchainConnection()
-//     .then(() => {
-//         app.listen(PORT, () => console.log(`Server running in ES Module mode on port ${PORT}`));
-//     })
-//     .catch(error => {
-//         console.error('Fatal Error: Failed to connect to blockchain and start server.', error);
-//         process.exit(1);
-//     });
+initializeBlockchainConnection()
+    .then(() => {
+        app.listen(PORT, () => console.log(`Server running in ES Module mode on port ${PORT}`));
+    })
+    .catch(error => {
+        console.error('Fatal Error: Failed to connect to blockchain and start server.', error);
+        process.exit(1);
+    });
