@@ -212,13 +212,27 @@ export const login = async (req, res) => {
       profileId: profile?.id,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1d",
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.ACCESS_TOKEN_LIFESPAN || "15m",
     });
 
+    // 2. Create long-lived Refresh Token
+    const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: process.env.REFRESH_TOKEN_LIFESPAN || "7d",
+    });
+
+    // 3. Send Refresh Token in a secure, HttpOnly cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true, // Prevents client-side JS from accessing the cookie
+      secure: process.env.NODE_ENV === "production", // Only send over HTTPS in production
+      sameSite: "strict", // Helps mitigate CSRF attacks
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, should match token expiry
+    });
+
+    // 4. Send Access Token and user data in the response body
     res.json({
       message: "Logged in successfully",
-      token,
+      accessToken, // Renamed from 'token' to 'accessToken'
       user: {
         id: user.id,
         fullName: user.fullName,
@@ -229,6 +243,48 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error during login." });
+  }
+};
+
+export const refreshToken = async (req, res) => {
+  const token = req.cookies.refreshToken;
+
+  if (!token) {
+    return res.status(401).json({ message: "No refresh token provided" });
+  }
+
+  try {
+    // CORRECT: Ensure you are using the REFRESH_TOKEN_SECRET here
+    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    // Issue a new access token
+    const payload = { userId: user.id, email: user.email, role: user.role };
+    const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.ACCESS_TOKEN_LIFESPAN || "15m",
+    });
+
+    res.json({
+      accessToken: newAccessToken,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    // This is the block that runs if the secret is wrong
+    console.error("Refresh Token Verification Error:", error.message);
+    return res
+      .status(403)
+      .json({ message: "Invalid or expired refresh token" });
   }
 };
 
@@ -339,18 +395,12 @@ export const getProfile = async (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  try {
-    // Note: With JWT, we can't invalidate the token on the server side
-    // The token will remain valid until it expires
-    // For better security, you might want to implement a token blacklist
+  // Clear the refresh token cookie
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
 
-    res.json({
-      message: "Logged out successfully",
-      // Instruct the client to remove the token
-      clearToken: true,
-    });
-  } catch (error) {
-    console.error("Logout error:", error);
-    res.status(500).json({ message: "Server error during logout." });
-  }
+  res.json({ message: "Logged out successfully" });
 };

@@ -1,115 +1,109 @@
-import React from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { useAuthStore } from './stores/useAuthStore';
-import LoginScreen from './pages/LoginScreen';
-import LandingPage from './pages/LandingPage';
-// import AdminDashboard from './pages/AdminDashboard';
-import FarmerDashboard from './pages/FarmerDashboard';
-import ManufacturerDashboard from './pages/ManufacturerDashboard';
-import LabsDashboard from './pages/LabsDashboard';
-import Navigation from './components/common/Navigation';
-import SignupForm from './components/auth/SignupForm';
-import AdminDashboard from './pages/AdminDashboard';
+import React from "react"; // Import React to use useEffect
+import { Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { useAuthStore } from "./stores/useAuthStore";
+import LoginScreen from "./pages/LoginScreen";
+import LandingPage from "./pages/LandingPage";
+import FarmerDashboard from "./pages/FarmerDashboard";
+import ManufacturerDashboard from "./pages/ManufacturerDashboard";
+import LabsDashboard from "./pages/LabsDashboard";
+import SignupForm from "./components/auth/SignupForm";
+import AdminDashboard from "./pages/AdminDashboard";
+
+// --- Helper Components (No changes needed here) ---
+
+const ProtectedRoute = () => {
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-950">
+        <div className="animate-spin w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  return accessToken ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+const GuestRoute = ({ children }) => {
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isLoading) return;
+
+    if (accessToken && user) {
+      const role = user.role.toLowerCase();
+      if (role === "admin") navigate("/admin");
+      else if (role === "farmer") navigate("/farmer");
+      else if (role === "manufacturer") navigate("/manufacturer");
+      else if (role === "lab" || role === "laboratory") navigate("/labs");
+    }
+  }, [accessToken, user, isLoading, navigate]);
+
+  return children;
+};
+
+// --- Main App Component ---
 
 const App = () => {
-    const { userType } = useAuthStore();
-    const navigate = useNavigate();
+  // FIX: Call restoreSession from a useEffect hook here.
+  // This ensures the session check runs only ONCE when the app mounts.
+  const restoreSession = useAuthStore((state) => state.restoreSession);
 
-    React.useEffect(() => {
-        if (userType === 'admin') {
-            navigate('/admin');
-        } else if (userType === 'farmer') {
-            navigate('/farmer');
-        } else if (userType === 'manufacturer') {
-            navigate('/manufacturer');
-        } else if (userType === 'lab') {
-            navigate('/labs');
-        }
-    }, [userType, navigate]);
+  React.useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
 
-    return (
-        <>
-            {/* Add Toaster once at the root level */}
-            <Toaster 
-                position="top-right" 
-                reverseOrder={false}
-                gutter={8}
-                containerClassName=""
-                containerStyle={{}}
-                toastOptions={{
-                    duration: 4000, // Default 4 seconds for all toasts
-                    style: {
-                        background: '#1e293b',
-                        color: '#fff',
-                        border: '1px solid #334155',
-                    },
-                    success: {
-                        duration: 3000, // Success toasts disappear after 3 seconds
-                        style: {
-                            background: '#10b981',
-                            color: '#fff',
-                        },
-                    },
-                    error: {
-                        duration: 5000, // Error toasts disappear after 5 seconds
-                        style: {
-                            background: '#ef4444',
-                            color: '#fff',
-                        },
-                    },
-                    // ADD THIS: Configure loading toasts
-                    loading: {
-                        duration: Infinity, // Loading toasts stay until manually dismissed
-                        style: {
-                            background: '#1e293b',
-                            color: '#fff',
-                            border: '1px solid #334155',
-                        },
-                    },
-                    // ADD THIS: Configure custom/info toasts
-                    blank: {
-                        duration: 3000, // Info/blank toasts disappear after 3 seconds
-                        style: {
-                            background: '#1e293b',
-                            color: '#fff',
-                            border: '1px solid #334155',
-                        },
-                    },
-                }}
-            />
-            <div className="min-h-screen bg-slate-950">
-                <Routes>
-                    {/* Public routes that are always accessible */}
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/login" element={<LoginScreen />} />
-                    <Route path="/signup" element={<SignupForm />} />
-                    
-                    {/* Protected routes are now defined first */}
-                    {/* {userType === 'admin' && (
-                        // <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    )} */}
-                    
-                    {userType === 'farmer' && (
-                        <Route path="/farmer" element={<FarmerDashboard />} />
-                    )}
-                    {userType === 'manufacturer' && (
-                        <Route path="/manufacturer" element={<ManufacturerDashboard />} />
-                    )}
-                    {userType === 'lab' && (
-                        <Route path="/labs" element={<LabsDashboard />} />
-                    )}
-                    {userType === 'admin' && (
-                        <Route path="/admin" element={<AdminDashboard />} />
-                    )}
+  return (
+    <>
+      <Toaster position="top-right" reverseOrder={false} />
+      <div className="min-h-screen bg-slate-950">
+        <Routes>
+          {/* Public/Guest routes */}
+          <Route
+            path="/"
+            element={
+              <GuestRoute>
+                <LandingPage />
+              </GuestRoute>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <LoginScreen />
+              </GuestRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <GuestRoute>
+                <SignupForm />
+              </GuestRoute>
+            }
+          />
 
-                    {/* The catch-all route should be the last one in the list */}
-                    {/* It will only render if no other routes match */}
-                    <Route path="*" element={<LandingPage />} />
-                </Routes>
-            </div>
-        </>
-    );
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/farmer" element={<FarmerDashboard />} />
+            <Route path="/manufacturer" element={<ManufacturerDashboard />} />
+            <Route path="/labs" element={<LabsDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
+
+          {/* Catch-all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </>
+  );
 };
 
 export default App;

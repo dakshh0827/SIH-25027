@@ -94,11 +94,11 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         {getPageNumbers().map((page, index) =>
           page === "..." ? (
             <span
-                      key={`ellipsis-${index}`}
-                      className="px-3 py-2 text-sm text-slate-500"
-                    >
-                      ...
-                    </span>
+              key={`ellipsis-${index}`}
+              className="px-3 py-2 text-sm text-slate-500"
+            >
+              ...
+            </span>
           ) : (
             <button
               key={page}
@@ -523,8 +523,8 @@ const ReportsTable = ({
   }, [searchTerm, statusFilter, reports]);
 
   if (isLoading) {
-      return <LoadingSpinner message={`Loading ${reportType} reports...`} />;
-    }
+    return <LoadingSpinner message={`Loading ${reportType} reports...`} />;
+  }
 
   const getEmptyState = () => {
     const icons = {
@@ -552,8 +552,8 @@ const ReportsTable = ({
     <div className="space-y-4">
       {!isAllReportsView && (
         <SectionTitle
-                  title={`${reportType} Reports (${filteredReports.length})`}
-                />
+          title={`${reportType} Reports (${filteredReports.length})`}
+        />
       )}
       {filteredReports.length > 0 ? (
         <>
@@ -739,19 +739,31 @@ const AdminDashboard = () => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const {
-    logout,
-    getProfile,
-    authenticatedFetch,
-    profile,
-    user,
-    isLoading: profileLoading,
-  } = useAuthStore();
+  const logout = useAuthStore((state) => state.logout);
+  const getProfile = useAuthStore((state) => state.getProfile);
+  const authenticatedFetch = useAuthStore((state) => state.authenticatedFetch);
+
+  // Select the specific state values your component needs.
+  const profile = useAuthStore((state) => state.profile);
+  const user = useAuthStore((state) => state.user);
+  const profileLoading = useAuthStore((state) => state.isLoading);
   const navigate = useNavigate();
 
   useEffect(() => {
-    getProfile();
-    fetchAllReports();
+    const loadData = async () => {
+      setIsLoading(true); // FIX: Was setLoading
+      try {
+        await fetchAllReports();
+        await getProfile();
+      } catch (error) {
+        console.error("Failed to load dashboard data", error);
+        toast.error("Could not load dashboard data.");
+      } finally {
+        setIsLoading(false); // FIX: Was setLoading
+      }
+    };
+
+    loadData();
   }, []);
 
   const fetchAllReports = async () => {
