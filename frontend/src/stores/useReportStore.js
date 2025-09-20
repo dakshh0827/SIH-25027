@@ -46,6 +46,116 @@ const useReportStore = create((set, get) => ({
     set({ availableHarvests: Array.isArray(harvests) ? harvests : [] });
   },
 
+  fetchHarvestHistory: async () => {
+    // Get helpers from the Auth store using getState()
+    // This is the correct way to call actions from another store
+    const { authenticatedFetch, handleApiError, showInfo } =
+      useAuthStore.getState();
+
+    try {
+      showInfo("Fetching harvest history...");
+      const response = await authenticatedFetch("/api/harvests/history");
+
+      const records = response?.data || response || [];
+      const safeRecords = Array.isArray(records) ? records : [];
+
+      const formattedRecords = safeRecords.map((record) => ({
+        //... your formatting logic here
+        ...record,
+        id: record.id || record._id || Date.now() + Math.random(),
+      }));
+
+      // Now we call this store's OWN setter function
+      set({ harvestRecords: formattedRecords });
+
+      toast.dismiss();
+      showInfo(`Loaded ${formattedRecords.length} harvest records.`);
+      return formattedRecords;
+    } catch (error) {
+      console.error("Harvest history fetch error:", error);
+      handleApiError(error, "Failed to fetch harvest history.");
+      set({ harvestRecords: [] }); // Update state on error
+      throw error;
+    }
+  },
+
+  fetchFarmerHistory: async (authenticatedFetch) => {
+    try {
+      // No more getState()! We use the function that was passed in.
+      const response = await authenticatedFetch("/api/harvests/history");
+      const records = response?.data || response || [];
+      const safeRecords = Array.isArray(records) ? records : [];
+
+      set({ harvestRecords: safeRecords }); // Update state
+      return safeRecords;
+    } catch (error) {
+      console.error("Harvest history fetch error:", error);
+      set({ harvestRecords: [] });
+      // You might want to show an error toast here
+      throw error;
+    }
+  },
+
+  fetchManufacturingHistory: async (authenticatedFetch) => {
+    try {
+      const response = await authenticatedFetch(
+        "/api/manufacturing_reports/history"
+      );
+      const records = response?.data || response || [];
+      const safeRecords = Array.isArray(records) ? records : [];
+
+      set({ manufacturingReports: safeRecords }); // Update state
+      return safeRecords;
+    } catch (error) {
+      console.error("Failed to fetch manufacturing history:", error);
+      set({ manufacturingReports: [] });
+      // You might want to show an error toast here
+      throw error;
+    }
+  },
+
+  fetchLabHistory: async (authenticatedFetch) => {
+    try {
+      // We use the authenticatedFetch function that was passed in
+      const response = await authenticatedFetch("/api/lab_reports/history");
+      const records = response?.data || response || [];
+      const safeRecords = Array.isArray(records) ? records : [];
+
+      // Call this store's own setter
+      set({ labRecords: safeRecords });
+
+      if (safeRecords.length > 0) {
+        toast.success(`Loaded ${safeRecords.length} lab reports.`);
+      }
+      return safeRecords;
+    } catch (error) {
+      console.error("Lab history fetch error:", error);
+      toast.error("Failed to fetch lab reports history.");
+      set({ labRecords: [] }); // Update state on error
+      throw error;
+    }
+  },
+
+  fetchLabQRHistory: async (authenticatedFetch) => {
+    try {
+      const response = await authenticatedFetch("/api/qr/lab/history");
+      const qrHistory = response?.data || [];
+
+      // Set QR history in this store
+      set({ qrHistory: qrHistory });
+
+      if (qrHistory.length > 0) {
+        toast.success(`Loaded ${qrHistory.length} QR codes.`);
+      }
+      return qrHistory;
+    } catch (error) {
+      console.error("Lab QR history fetch error:", error);
+      toast.error("Failed to fetch lab QR history.");
+      set({ qrHistory: [] });
+      throw error;
+    }
+  },
+
   // Fetch available harvest identifiers for manufacturers/labs
   fetchAvailableHarvests: async () => {
     const { authenticatedFetch, handleApiError } = useAuthStore.getState();
@@ -285,43 +395,25 @@ const useReportStore = create((set, get) => ({
   },
 
   // Fetch QR history for the current user based on role
-  fetchQRHistory: async (userRole) => {
+  fetchQRHistory: async () => {
     const { authenticatedFetch, handleApiError, showInfo } =
       useAuthStore.getState();
-
     try {
-      let endpoint;
-      switch (userRole) {
-        case "farmer":
-          endpoint = "/api/qr/farmer/history";
-          break;
-        case "manufacturer":
-          endpoint = "/api/qr/manufacturer/history";
-          break;
-        case "lab":
-          endpoint = "/api/qr/lab/history";
-          break;
-        default:
-          console.warn("Invalid user role for QR history fetch");
-          return [];
-      }
+      showInfo("Fetching QR history...");
+      const response = await authenticatedFetch("/api/harvests/qr-history");
+      const qrHistory = response?.data || response || [];
 
-      showInfo("Loading QR history...");
-      const response = await authenticatedFetch(endpoint);
-      const qrHistory = response.data || [];
+      // Use this store's own setter
+      set({ qrHistory: Array.isArray(qrHistory) ? qrHistory : [] });
 
-      set({ qrHistory });
-
-      if (qrHistory.length > 0) {
-        showInfo(`Found ${qrHistory.length} QR code(s) in your history.`);
-      }
-
+      toast.dismiss();
+      showInfo(`Loaded ${qrHistory.length} QR codes.`);
       return qrHistory;
     } catch (error) {
-      console.error("Error fetching QR history:", error);
-      handleApiError(error, "Failed to fetch QR tracking history");
+      console.error("QR history fetch error:", error);
+      handleApiError(error, "Failed to fetch QR history.");
       set({ qrHistory: [] });
-      return [];
+      throw error;
     }
   },
 

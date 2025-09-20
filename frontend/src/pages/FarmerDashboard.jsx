@@ -8,11 +8,11 @@ import {
   Tag,
   LogOut,
   Loader2,
-  QrCode,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useReportStore } from "../stores/useReportStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import QRScannerModal from "../components/QRScannerModal";
 
 // Reusable UI components
 const Card = ({ children }) => (
@@ -37,114 +37,6 @@ const LoadingSpinner = ({ message = "Loading..." }) => (
   </div>
 );
 
-// QR Management Section
-const QRManagementSection = ({ userRole }) => {
-  const [qrHistory, setQRHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchQRHistory = async () => {
-    setLoading(true);
-    const { authenticatedFetch } = useAuthStore.getState();
-    try {
-      const endpoint = "/api/qr/farmer/history";
-      const response = await authenticatedFetch(endpoint);
-      setQRHistory(response.data || []);
-    } catch (error) {
-      toast.error("Failed to fetch QR history");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchQRHistory();
-  }, []);
-
-  return (
-    <div className="space-y-6">
-      <SectionTitle title="QR Code Tracking" />
-
-      {loading ? (
-        <LoadingSpinner message="Loading QR history..." />
-      ) : (
-        <div className="space-y-4">
-          {qrHistory.length > 0 ? (
-            qrHistory.map((qr) => (
-              <div
-                key={qr.qrCode}
-                className="bg-slate-800/50 border border-slate-700/50 p-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-white">
-                      {qr.productName || "Product"}
-                    </h4>
-                    <p className="text-sm text-slate-400">QR: {qr.qrCode}</p>
-                    <p className="text-sm text-slate-400">
-                      Status: {qr.status}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500">
-                      {new Date(qr.updatedAt).toLocaleDateString()}
-                    </p>
-                    {qr.isPublic && (
-                      <span className="inline-block mt-1 px-2 py-1 bg-green-600/30 text-green-400 text-xs">
-                        Public
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-slate-500 text-center py-8">No QR codes found</p>
-          )}
-        </div>
-      )}
-
-      <button
-        onClick={fetchQRHistory}
-        className="w-full py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 transition-colors"
-      >
-        Refresh QR History
-      </button>
-    </div>
-  );
-};
-
-// QR Display Modal
-const QRDisplayModal = ({ qrData, onClose }) => {
-  if (!qrData) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-slate-800 p-6 border border-slate-600 max-w-md w-full mx-4">
-        <div className="text-center">
-          <QrCode className="h-12 w-12 text-[#34d399] mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">
-            QR Code Generated
-          </h3>
-          <div className="bg-slate-700/50 p-4 border border-slate-600 mb-4">
-            <p className="text-lg font-mono text-[#34d399] mb-2">
-              {qrData.qrCode}
-            </p>
-            <p className="text-sm text-slate-400">
-              Product: {qrData.productName}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-full py-2 bg-[#10b981] text-white hover:bg-[#059669] transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Form for uploading a new harvest record
 const UploadHarvestForm = ({ onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
@@ -158,7 +50,6 @@ const UploadHarvestForm = ({ onSubmit, isSubmitting }) => {
     harvestProof: null,
   });
   const [tagInput, setTagInput] = useState("");
-  const [qrData, setQRData] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -273,22 +164,8 @@ const UploadHarvestForm = ({ onSubmit, isSubmitting }) => {
     }
 
     try {
-      const result = await onSubmit(formData);
-
-      // Check if QR data is returned
-      if (result && result.qr) {
-        toast.success(
-          `Harvest record created with QR code: ${result.qr.qrCode}!`,
-          {
-            duration: 5000,
-          }
-        );
-
-        // Show QR code in a modal
-        setQRData(result.qr);
-      }
-
-      // Reset form
+      await onSubmit(formData);
+      // Reset form in the parent after modal is handled
       setFormData({
         identifier: "",
         herbSpecies: "",
@@ -300,8 +177,6 @@ const UploadHarvestForm = ({ onSubmit, isSubmitting }) => {
         harvestProof: null,
       });
       setTagInput("");
-
-      // Reset file input
       const fileInput = document.getElementById("harvestProof");
       if (fileInput) {
         fileInput.value = "";
@@ -312,240 +187,234 @@ const UploadHarvestForm = ({ onSubmit, isSubmitting }) => {
   };
 
   return (
-    <>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <SectionTitle title="New Harvest Record" />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <SectionTitle title="New Harvest Record" />
 
-        <div>
-          <label
-            htmlFor="identifier"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Harvest Identifier <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            name="identifier"
-            id="identifier"
-            value={formData.identifier}
-            onChange={handleChange}
-            required
-            disabled={isSubmitting}
-            placeholder="e.g., HARV-TURMERIC-2024-001"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="herbSpecies"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Herb Species <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            name="herbSpecies"
-            id="herbSpecies"
-            value={formData.herbSpecies}
-            onChange={handleChange}
-            required
-            disabled={isSubmitting}
-            placeholder="e.g., Turmeric, Ashwagandha"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="harvestWeightKg"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Harvest Weight (kg) <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="number"
-            name="harvestWeightKg"
-            id="harvestWeightKg"
-            value={formData.harvestWeightKg}
-            onChange={handleChange}
-            required
-            disabled={isSubmitting}
-            step="0.01"
-            min="0"
-            placeholder="e.g., 150.5"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="harvestSeason"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Harvest Season <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            name="harvestSeason"
-            id="harvestSeason"
-            value={formData.harvestSeason}
-            onChange={handleChange}
-            required
-            disabled={isSubmitting}
-            placeholder="e.g., Summer 2024, Monsoon 2024"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="location"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Location (GPS Coordinates) <span className="text-red-400">*</span>
-          </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              type="text"
-              name="location"
-              id="location"
-              value={formData.location}
-              readOnly
-              required
-              disabled={isSubmitting}
-              placeholder="Click button to capture location"
-              className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white cursor-not-allowed disabled:opacity-50"
-            />
-            <button
-              type="button"
-              onClick={handleCaptureLocation}
-              disabled={isSubmitting}
-              className="flex-shrink-0 px-4 py-3 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <MapPin className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="notes"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Additional Notes
-          </label>
-          <textarea
-            name="notes"
-            id="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            rows="3"
-            placeholder="Any additional information about the harvest..."
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="tagInput"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Regulatory Tags
-          </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              type="text"
-              id="tagInput"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="e.g., Organic, FSSAI-Approved"
-              className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                  handleAddTag(e);
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleAddTag}
-              disabled={isSubmitting || !tagInput.trim()}
-              className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Tag className="h-5 w-5" />
-            </button>
-          </div>
-
-          {formData.regulatoryTags.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {formData.regulatoryTags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200"
-                  onClick={() => !isSubmitting && handleRemoveTag(tag)}
-                >
-                  {tag}
-                  {!isSubmitting && (
-                    <span className="text-blue-400 hover:text-blue-200">×</span>
-                  )}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="harvestProof"
-            className="block text-sm font-medium text-slate-300 mb-1"
-          >
-            Harvest Proof (PNG/JPG) <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="file"
-            name="harvestProof"
-            id="harvestProof"
-            accept=".png,.jpg,.jpeg"
-            onChange={handleFileChange}
-            required
-            disabled={isSubmitting}
-            className="mt-1 block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] file:transition-colors file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <p className="mt-2 text-xs text-slate-400">
-            Upload a clear image showing your harvest. Maximum file size: 10MB
-          </p>
-          {formData.harvestProof && (
-            <p className="mt-1 text-xs text-green-400">
-              Selected: {formData.harvestProof.name}
-            </p>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      <div>
+        <label
+          htmlFor="identifier"
+          className="block text-sm font-medium text-slate-300 mb-1"
         >
-          {isSubmitting ? (
-            <>
-              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent mr-2"></div>
-              Submitting...
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4 mr-2" /> Submit Harvest Record
-            </>
-          )}
-        </button>
-      </form>
+          Harvest Identifier <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="text"
+          name="identifier"
+          id="identifier"
+          value={formData.identifier}
+          onChange={handleChange}
+          required
+          disabled={isSubmitting}
+          placeholder="e.g., HARV-TURMERIC-2024-001"
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+      </div>
 
-      {qrData && (
-        <QRDisplayModal qrData={qrData} onClose={() => setQRData(null)} />
-      )}
-    </>
+      <div>
+        <label
+          htmlFor="herbSpecies"
+          className="block text-sm font-medium text-slate-300 mb-1"
+        >
+          Herb Species <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="text"
+          name="herbSpecies"
+          id="herbSpecies"
+          value={formData.herbSpecies}
+          onChange={handleChange}
+          required
+          disabled={isSubmitting}
+          placeholder="e.g., Turmeric, Ashwagandha"
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="harvestWeightKg"
+          className="block text-sm font-medium text-slate-300 mb-1"
+        >
+          Harvest Weight (kg) <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="number"
+          name="harvestWeightKg"
+          id="harvestWeightKg"
+          value={formData.harvestWeightKg}
+          onChange={handleChange}
+          required
+          disabled={isSubmitting}
+          step="0.01"
+          min="0"
+          placeholder="e.g., 150.5"
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="harvestSeason"
+          className="block text-sm font-medium text-slate-300 mb-1"
+        >
+          Harvest Season <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="text"
+          name="harvestSeason"
+          id="harvestSeason"
+          value={formData.harvestSeason}
+          onChange={handleChange}
+          required
+          disabled={isSubmitting}
+          placeholder="e.g., Summer 2024, Monsoon 2024"
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="location"
+          className="block text-sm font-medium text-slate-300 mb-1"
+        >
+          Location (GPS Coordinates) <span className="text-red-400">*</span>
+        </label>
+        <div className="mt-1 flex gap-2">
+          <input
+            type="text"
+            name="location"
+            id="location"
+            value={formData.location}
+            readOnly
+            required
+            disabled={isSubmitting}
+            placeholder="Click button to capture location"
+            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white cursor-not-allowed disabled:opacity-50"
+          />
+          <button
+            type="button"
+            onClick={handleCaptureLocation}
+            disabled={isSubmitting}
+            className="flex-shrink-0 px-4 py-3 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <MapPin className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label
+          htmlFor="notes"
+          className="block text-sm font-medium text-slate-300 mb-1"
+        >
+          Additional Notes
+        </label>
+        <textarea
+          name="notes"
+          id="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          disabled={isSubmitting}
+          rows="3"
+          placeholder="Any additional information about the harvest..."
+          className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none resize-vertical disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="tagInput"
+          className="block text-sm font-medium text-slate-300 mb-1"
+        >
+          Regulatory Tags
+        </label>
+        <div className="mt-1 flex gap-2">
+          <input
+            type="text"
+            id="tagInput"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="e.g., Organic, FSSAI-Approved"
+            className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                handleAddTag(e);
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleAddTag}
+            disabled={isSubmitting || !tagInput.trim()}
+            className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Tag className="h-5 w-5" />
+          </button>
+        </div>
+
+        {formData.regulatoryTags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {formData.regulatoryTags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200"
+                onClick={() => !isSubmitting && handleRemoveTag(tag)}
+              >
+                {tag}
+                {!isSubmitting && (
+                  <span className="text-blue-400 hover:text-blue-200">×</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label
+          htmlFor="harvestProof"
+          className="block text-sm font-medium text-slate-300 mb-1"
+        >
+          Harvest Proof (PNG/JPG) <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="file"
+          name="harvestProof"
+          id="harvestProof"
+          accept=".png,.jpg,.jpeg"
+          onChange={handleFileChange}
+          required
+          disabled={isSubmitting}
+          className="mt-1 block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-[#10b981] file:text-white hover:file:bg-[#059669] file:transition-colors file:duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        <p className="mt-2 text-xs text-slate-400">
+          Upload a clear image showing your harvest. Maximum file size: 10MB
+        </p>
+        {formData.harvestProof && (
+          <p className="mt-1 text-xs text-green-400">
+            Selected: {formData.harvestProof.name}
+          </p>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (
+          <>
+            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent mr-2"></div>
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Plus className="h-4 w-4 mr-2" /> Submit Harvest Record
+          </>
+        )}
+      </button>
+    </form>
   );
 };
 
@@ -611,12 +480,7 @@ const HarvestHistory = ({ records, isLoading }) => {
                 >
                   Status
                 </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                >
-                  QR Code
-                </th>
+                {/* ✅ CHANGE: QR Code column removed */}
               </tr>
             </thead>
             <tbody className="bg-slate-900/40 text-slate-300 divide-y divide-slate-700/50">
@@ -643,17 +507,7 @@ const HarvestHistory = ({ records, isLoading }) => {
                       {record.status || "Pending Validation"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {record.qrStatus.code ? (
-                      <span className="font-mono text-[#34d399] text-xs">
-                        {record.qrStatus.code}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 text-xs">
-                        Not Generated
-                      </span>
-                    )}
-                  </td>
+                  {/* ✅ CHANGE: QR Code cell removed */}
                 </tr>
               ))}
             </tbody>
@@ -835,55 +689,51 @@ const UserProfile = ({ profile, user, isLoading, onRefresh }) => {
 // Main Dashboard Component
 const FarmerDashboard = () => {
   const [activeSection, setActiveSection] = useState("history");
+  const [modalQrData, setModalQrData] = useState(null);
 
-  const { isSubmitting, submitReport, harvestRecords, setHarvestRecords } =
+  const { fetchFarmerHistory, harvestRecords, isSubmitting, submitReport } =
     useReportStore();
-  const { logout, getProfile, getHarvestHistory, profile, user, isLoading } =
+  const { logout, getProfile, profile, user, isLoading, authenticatedFetch } =
     useAuthStore();
 
   const [localProfileLoading, setLocalProfileLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      await getProfile();
-      await getHarvestHistory();
+      if (!isLoading && user) {
+        try {
+          await getProfile();
+          await fetchFarmerHistory(authenticatedFetch);
+        } catch (error) {
+          console.error("Failed to fetch dashboard data:", error);
+        }
+      }
     };
     fetchData();
-  }, [getProfile, getHarvestHistory]);
+  }, [isLoading, user, getProfile, fetchFarmerHistory, authenticatedFetch]);
 
   const handleUploadSubmit = async (formData) => {
     try {
-      const newRecord = await submitReport({
+      const result = await submitReport({
         reportType: "farmer",
         data: formData,
       });
 
-      if (newRecord) {
-        setHarvestRecords((prev) => [
-          {
-            ...newRecord,
-            id: Date.now(),
-            createdAt: new Date().toISOString(),
-            status: "Pending",
-          },
-          ...prev,
-        ]);
-
-        await getHarvestHistory();
-
-        setTimeout(() => {
-          setActiveSection("history");
-        }, 1000);
-
+      if (result) {
+        fetchFarmerHistory(authenticatedFetch);
         toast.success(
-          `Harvest record for ${formData.herbSpecies} (${formData.harvestWeightKg}kg) submitted successfully!`
+          `Harvest record for ${formData.herbSpecies} submitted successfully!`
         );
-      }
 
-      return newRecord;
+        if (result.qr) {
+          const dataForModal = { ...result.report, ...result.qr };
+          setModalQrData(dataForModal);
+        }
+      }
     } catch (error) {
       console.error("Error submitting harvest record:", error);
       toast.error("Failed to submit harvest record. Please try again.");
+      throw error;
     }
   };
 
@@ -923,8 +773,7 @@ const FarmerDashboard = () => {
             onRefresh={handleRefreshProfile}
           />
         );
-      case "qr":
-        return <QRManagementSection userRole="farmer" />;
+      // ✅ CHANGE: QR case removed
       default:
         return (
           <HarvestHistory records={harvestRecords} isLoading={isLoading} />
@@ -1026,17 +875,7 @@ const FarmerDashboard = () => {
                   <Upload className="h-5 w-5 flex-shrink-0" />
                   <span>Upload New Record</span>
                 </button>
-                <button
-                  onClick={() => handleSectionChange("qr")}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 text-left cursor-pointer ${
-                    activeSection === "qr"
-                      ? "bg-blue-600/30 border-l-4 border-blue-500 text-blue-300"
-                      : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-                  }`}
-                >
-                  <QrCode className="h-5 w-5 flex-shrink-0" />
-                  <span>QR Tracking</span>
-                </button>
+                {/* ✅ CHANGE: QR tracking button removed from sidebar */}
               </nav>
             </Card>
           </div>
@@ -1045,6 +884,13 @@ const FarmerDashboard = () => {
             <Card>{renderSection()}</Card>
           </div>
         </div>
+
+        {modalQrData && (
+          <QRScannerModal
+            qrData={modalQrData}
+            onClose={() => setModalQrData(null)}
+          />
+        )}
       </div>
     </div>
   );

@@ -120,9 +120,9 @@ const QRCodeCard = ({ qrData }) => {
             </div>
 
             <div className="flex items-center gap-2 text-slate-300">
-              <Building className="w-4 h-4 text-emerald-400" />
+              <Calendar className="w-4 h-4 text-emerald-400" />
               <span className="truncate">
-                {qrData.fpoName || "Unknown FPO"}
+                {qrData.harvestSeason || "Unknown Season"}
               </span>
             </div>
 

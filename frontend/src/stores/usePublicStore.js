@@ -17,6 +17,7 @@ const usePublicStore = create((set, get) => ({
     hasPrev: false,
   },
   searchTerm: "",
+  statusFilter: "", // Filter by status
   stats: null,
   selectedQR: null,
 
@@ -24,6 +25,7 @@ const usePublicStore = create((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
   setSearchTerm: (searchTerm) => set({ searchTerm }),
+  setStatusFilter: (statusFilter) => set({ statusFilter }),
   setSelectedQR: (qr) => set({ selectedQR: qr }),
 
   /**
@@ -49,9 +51,54 @@ const usePublicStore = create((set, get) => ({
   },
 
   /**
-   * Fetch public QR codes with pagination and search
+   * Get status display info for UI
    */
-  fetchPublicQRCodes: async (page = 1, limit = 12, search = "") => {
+  getStatusInfo: (status) => {
+    const statusMap = {
+      INITIALIZED: {
+        label: "Initialized",
+        color: "blue",
+        description: "Harvest data recorded",
+      },
+      MANUFACTURING: {
+        label: "Manufacturing",
+        color: "orange",
+        description: "Processing in progress",
+      },
+      TESTING: {
+        label: "Testing",
+        color: "purple",
+        description: "Lab testing completed",
+      },
+      COMPLETED: {
+        label: "Completed",
+        color: "green",
+        description: "All stages completed",
+      },
+      PUBLIC: {
+        label: "Public",
+        color: "emerald",
+        description: "Available to consumers",
+      },
+    };
+    return (
+      statusMap[status] || {
+        label: status,
+        color: "gray",
+        description: "Unknown status",
+      }
+    );
+  },
+
+  /**
+   * Fetch QR codes with pagination and search (accessible at all stages)
+   */
+  fetchPublicQRCodes: async (
+    page = 1,
+    limit = 12,
+    search = "",
+    status = ""
+  ) => {
     try {
       set({ isLoading: true, error: null });
 
@@ -59,6 +106,7 @@ const usePublicStore = create((set, get) => ({
         page: page.toString(),
         limit: limit.toString(),
         ...(search && { search }),
+        ...(status && { status }),
       });
 
       const response = await fetch(
@@ -91,6 +139,8 @@ const usePublicStore = create((set, get) => ({
         // Add report URL for convenience
         reportUrl: `${API_BASE_URL}/api/qr/report/${qr.qrCode}`,
         shareUrl: `${API_BASE_URL}/report/${qr.qrCode}`,
+        // Add status info for UI
+        statusInfo: get().getStatusInfo(qr.status),
       }));
 
       console.log(
@@ -114,13 +164,13 @@ const usePublicStore = create((set, get) => ({
         qrCodes: mappedQRCodes,
       };
     } catch (error) {
-      console.error("Error fetching public QR codes:", error);
+      console.error("Error fetching QR codes:", error);
       set({
         isLoading: false,
         error: error.message,
         publicQRCodes: [],
       });
-      toast.error("Failed to load public QR codes", {
+      toast.error("Failed to load QR codes", {
         duration: 4000,
         position: "top-right",
       });
@@ -129,16 +179,33 @@ const usePublicStore = create((set, get) => ({
   },
 
   /**
-   * Search public QR codes
+   * Search QR codes
    */
   searchPublicQRCodes: async (searchTerm) => {
     try {
       set({ searchTerm });
-      const { fetchPublicQRCodes } = get();
-      await fetchPublicQRCodes(1, 12, searchTerm);
+      const { fetchPublicQRCodes, statusFilter } = get();
+      await fetchPublicQRCodes(1, 12, searchTerm, statusFilter);
     } catch (error) {
       console.error("Error searching QR codes:", error);
       toast.error("Search failed. Please try again.", {
+        duration: 3000,
+        position: "top-right",
+      });
+    }
+  },
+
+  /**
+   * Filter by status
+   */
+  filterByStatus: async (status) => {
+    try {
+      set({ statusFilter: status });
+      const { fetchPublicQRCodes, searchTerm } = get();
+      await fetchPublicQRCodes(1, 12, searchTerm, status);
+    } catch (error) {
+      console.error("Error filtering QR codes:", error);
+      toast.error("Filter failed. Please try again.", {
         duration: 3000,
         position: "top-right",
       });
@@ -150,13 +217,15 @@ const usePublicStore = create((set, get) => ({
    */
   loadNextPage: async () => {
     try {
-      const { pagination, searchTerm, fetchPublicQRCodes } = get();
+      const { pagination, searchTerm, statusFilter, fetchPublicQRCodes } =
+        get();
       if (!pagination.hasNext) return;
 
       await fetchPublicQRCodes(
         pagination.page + 1,
         pagination.limit,
-        searchTerm
+        searchTerm,
+        statusFilter
       );
     } catch (error) {
       console.error("Error loading next page:", error);
@@ -168,13 +237,15 @@ const usePublicStore = create((set, get) => ({
    */
   loadPreviousPage: async () => {
     try {
-      const { pagination, searchTerm, fetchPublicQRCodes } = get();
+      const { pagination, searchTerm, statusFilter, fetchPublicQRCodes } =
+        get();
       if (!pagination.hasPrev) return;
 
       await fetchPublicQRCodes(
         pagination.page - 1,
         pagination.limit,
-        searchTerm
+        searchTerm,
+        statusFilter
       );
     } catch (error) {
       console.error("Error loading previous page:", error);
@@ -182,7 +253,7 @@ const usePublicStore = create((set, get) => ({
   },
 
   /**
-   * Fetch public statistics
+   * Fetch statistics (includes breakdown by status for all QR codes)
    */
   fetchPublicStats: async () => {
     try {
@@ -205,7 +276,7 @@ const usePublicStore = create((set, get) => ({
         throw new Error(data.message || "Failed to fetch statistics");
       }
     } catch (error) {
-      console.error("Error fetching public stats:", error);
+      console.error("Error fetching stats:", error);
       toast.error("Failed to load statistics", {
         duration: 3000,
         position: "top-right",
@@ -214,7 +285,7 @@ const usePublicStore = create((set, get) => ({
   },
 
   /**
-   * Get QR preview data
+   * Get QR preview data (accessible at all stages)
    */
   getQRPreview: async (qrCode) => {
     try {
@@ -229,7 +300,7 @@ const usePublicStore = create((set, get) => ({
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error("QR code not found or not public");
+          throw new Error("QR code not found");
         }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -237,7 +308,10 @@ const usePublicStore = create((set, get) => ({
       const data = await response.json();
 
       if (data.success) {
-        return data.data;
+        return {
+          ...data.data,
+          statusInfo: get().getStatusInfo(data.data.status),
+        };
       } else {
         throw new Error(data.message || "Failed to fetch QR preview");
       }
@@ -365,52 +439,6 @@ const usePublicStore = create((set, get) => ({
   },
 
   /**
-   * Fix all QR URLs (admin function)
-   */
-  fixAllQRUrls: async () => {
-    try {
-      set({ isLoading: true });
-
-      const response = await fetch(`${API_BASE_URL}/api/admin/fix-qr-urls`, {
-        method: "POST",
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success(`Fixed ${data.data.totalFixed} QR codes!`, {
-          duration: 4000,
-          position: "top-right",
-        });
-
-        // Refresh current page to show updated QR codes
-        await get().refreshCurrentPage();
-
-        return data.data;
-      } else {
-        throw new Error(data.message || "Failed to fix QR URLs");
-      }
-    } catch (error) {
-      console.error("Error fixing QR URLs:", error);
-      toast.error("Failed to fix QR URLs", {
-        duration: 3000,
-        position: "top-right",
-      });
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  /**
    * Clear all data
    */
   clearPublicData: () => {
@@ -427,6 +455,7 @@ const usePublicStore = create((set, get) => ({
         hasPrev: false,
       },
       searchTerm: "",
+      statusFilter: "",
       stats: null,
       selectedQR: null,
     });
@@ -437,8 +466,14 @@ const usePublicStore = create((set, get) => ({
    */
   refreshCurrentPage: async () => {
     try {
-      const { pagination, searchTerm, fetchPublicQRCodes } = get();
-      await fetchPublicQRCodes(pagination.page, pagination.limit, searchTerm);
+      const { pagination, searchTerm, statusFilter, fetchPublicQRCodes } =
+        get();
+      await fetchPublicQRCodes(
+        pagination.page,
+        pagination.limit,
+        searchTerm,
+        statusFilter
+      );
     } catch (error) {
       console.error("Error refreshing page:", error);
     }

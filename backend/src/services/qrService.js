@@ -93,7 +93,7 @@ class QRTrackingService {
           harvestIdentifier: harvest.identifier,
           publicUrl,
           status: "INITIALIZED",
-          isPublic: false,
+          isPublic: false, // Keep internal flag for tracking purposes
           productName: `${harvest.herbSpecies} Product`, // Default product name
           stageCompletions: {
             qrImageUrl: qrImageDataUrl,
@@ -217,6 +217,7 @@ class QRTrackingService {
 
   /**
    * Fetches all data and generates a PDF report as a Buffer.
+   * CHANGE: Remove isPublic restriction - accessible at all stages
    * @param {string} qrCode The QR code to generate a report for.
    * @returns {Promise<Buffer>} A promise that resolves with the PDF buffer.
    */
@@ -225,9 +226,10 @@ class QRTrackingService {
     try {
       const trackingInfo = await this.getTrackingInfo(qrCode);
 
-      if (!trackingInfo.isPublic) {
-        throw new Error("This report is not available to the public yet.");
-      }
+      // CHANGE: Remove isPublic check - now accessible at all stages
+      // if (!trackingInfo.isPublic) {
+      //   throw new Error("This report is not available to the public yet.");
+      // }
 
       const htmlContent = generateReportHTML(trackingInfo);
 
@@ -309,7 +311,7 @@ class QRTrackingService {
           status: newStatus,
           stageCompletions: currentCompletions,
           updatedAt: new Date(),
-          // Make public if all stages are completed
+          // Keep internal isPublic flag for administrative purposes
           ...(newStatus === "COMPLETED" && {
             isPublic: true,
             status: "PUBLIC",
@@ -436,6 +438,7 @@ class QRTrackingService {
 
   /**
    * Get tracking information for a QR code
+   * CHANGE: Remove isPublic restriction - accessible at all stages
    * @param {string} qrCode - The QR code
    * @returns {Object} Tracking information
    */
@@ -448,6 +451,8 @@ class QRTrackingService {
       if (!qrTracker) {
         throw new Error(`QR tracker not found for code: ${qrCode}`);
       }
+
+      // CHANGE: Remove isPublic check - now accessible at all stages
 
       // Get harvest information using the harvestIdentifier
       const harvest = await prisma.harvest.findUnique({
@@ -554,7 +559,7 @@ class QRTrackingService {
   }
 
   /**
-   * Make QR code public for tracking
+   * Make QR code public for tracking (keep for administrative purposes)
    * @param {string} qrCode - The QR code
    * @returns {Object} Updated QR tracker
    */
@@ -680,17 +685,16 @@ class QRTrackingService {
 
   /**
    * Get all public QR codes for consumer browsing with enhanced data
+   * CHANGE: Now returns QR codes at all stages, not just public ones
    * @param {number} limit - Number of records to fetch
    * @param {number} offset - Number of records to skip
-   * @returns {Array} Public QR codes with harvest details
+   * @returns {Array} QR codes with harvest details (all stages)
    */
   async getAllPublicQRs(limit = 20, offset = 0) {
     try {
+      // CHANGE: Remove isPublic and status restrictions
       const qrTrackers = await prisma.qRTracker.findMany({
-        where: {
-          isPublic: true,
-          status: "PUBLIC",
-        },
+        // No where clause - get all QR codes at all stages
         take: limit,
         skip: offset,
         orderBy: { updatedAt: "desc" },
@@ -729,6 +733,7 @@ class QRTrackingService {
             qrImageUrl: qr.stageCompletions?.qrImageUrl || null,
             createdAt: qr.createdAt,
             updatedAt: qr.updatedAt,
+            isPublic: qr.isPublic, // Keep for reference
           };
         })
       );
@@ -742,12 +747,13 @@ class QRTrackingService {
 
   /**
    * Generate scannable QR code image for consumer use
+   * CHANGE: Remove isPublic restriction - accessible at all stages
    * @param {string} qrCode - The QR code
    * @returns {Buffer} QR code image buffer
    */
   async generateScannerQRImage(qrCode) {
     try {
-      // Verify QR exists and is public
+      // Verify QR exists (removed public check)
       const qrTracker = await prisma.qRTracker.findUnique({
         where: { qrCode },
       });
@@ -756,9 +762,10 @@ class QRTrackingService {
         throw new Error(`QR tracker not found for code: ${qrCode}`);
       }
 
-      if (!qrTracker.isPublic) {
-        throw new Error(`QR code ${qrCode} is not public`);
-      }
+      // CHANGE: Remove isPublic check - now accessible at all stages
+      // if (!qrTracker.isPublic) {
+      //   throw new Error(`QR code ${qrCode} is not public`);
+      // }
 
       // Create the report URL that QR will point to using ngrok URL
       const reportUrl = `${this.getBaseUrl()}/report/${qrCode}`;

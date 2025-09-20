@@ -1,5 +1,3 @@
-// controllers/publicController.js
-
 import { PrismaClient } from "@prisma/client";
 import QRCode from "qrcode";
 
@@ -18,12 +16,12 @@ const getBaseUrl = () => {
 };
 
 /**
- * @desc    Get all public QR codes for landing page display
- * @access  Public
+ * @desc     Get all QR codes for landing page display (accessible at all stages)
+ * @access   Public
  */
 export const getPublicQRCodes = async (req, res) => {
   try {
-    const { page = 1, limit = 12, search = "" } = req.query;
+    const { page = 1, limit = 12, search = "", status = "" } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const searchFilter = search
@@ -35,11 +33,15 @@ export const getPublicQRCodes = async (req, res) => {
         }
       : {};
 
+    // Status filter - if provided, filter by specific status
+    const statusFilter = status ? { status: status.toUpperCase() } : {};
+
+    // CHANGE: Remove isPublic restriction - now accessible at all stages
     const qrCodes = await prisma.qRTracker.findMany({
       where: {
-        isPublic: true,
-        status: "PUBLIC",
         ...searchFilter,
+        ...statusFilter,
+        // Removed: isPublic: true restriction
       },
       skip,
       take: parseInt(limit),
@@ -58,7 +60,6 @@ export const getPublicQRCodes = async (req, res) => {
       qrCodes.map(async (qr) => {
         const harvest = harvestMap.get(qr.harvestIdentifier);
 
-        // Check if QR image needs to be regenerated (has localhost URL)
         let qrImageUrl = qr.stageCompletions?.qrImageUrl || null;
 
         if (
@@ -67,7 +68,6 @@ export const getPublicQRCodes = async (req, res) => {
           qrImageUrl.includes("127.0.0.1")
         ) {
           try {
-            // Regenerate QR image with correct ngrok URL
             const correctUrl = `${getBaseUrl()}/api/qr/report/${qr.qrCode}`;
             const QRCode = await import("qrcode");
             qrImageUrl = await QRCode.default.toDataURL(correctUrl, {
@@ -79,7 +79,6 @@ export const getPublicQRCodes = async (req, res) => {
               },
             });
 
-            // Update the database with the correct image
             await prisma.qRTracker.update({
               where: { id: qr.id },
               data: {
@@ -99,34 +98,32 @@ export const getPublicQRCodes = async (req, res) => {
         }
 
         return {
-          // Existing Fields
           qrCode: qr.qrCode,
           productName: qr.productName || `${harvest?.herbSpecies} Product`,
           batchId: qr.batchId,
           herbSpecies: harvest?.herbSpecies || "N/A",
           farmerName: harvest?.submittedBy?.user?.fullName || "N/A",
           updatedAt: qr.updatedAt,
-
-          // ADDED: Missing Fields
           fpoName: harvest?.submittedBy?.fpoName || "Unknown FPO",
           harvestLocation: harvest?.location || "Unknown Location",
           harvestWeight: harvest?.harvestWeightKg || 0,
           harvestIdentifier: qr.harvestIdentifier,
           createdAt: qr.createdAt,
-          qrImageUrl: qrImageUrl, // Use the corrected image URL
+          qrImageUrl: qrImageUrl,
           status: qr.status,
-
-          // No need to send this, frontend store can build it
-          // reportUrl: `/api/qr/report/${qr.qrCode}`,
+          harvestSeason: harvest?.harvestSeason || "Unknown Season",
+          // Keep isPublic flag for frontend to handle differently if needed
+          isPublic: qr.isPublic,
         };
       })
     );
 
+    // CHANGE: Remove isPublic restriction from count query
     const totalCount = await prisma.qRTracker.count({
       where: {
-        isPublic: true,
-        status: "PUBLIC",
         ...searchFilter,
+        ...statusFilter,
+        // Removed: isPublic: true restriction
       },
     });
 
@@ -143,17 +140,17 @@ export const getPublicQRCodes = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching public QR codes:", error);
+    console.error("Error fetching QR codes:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch public QR codes",
+      message: "Failed to fetch QR codes",
     });
   }
 };
 
 /**
- * @desc    Generate scannable QR code image
- * @access  Public
+ * @desc     Generate scannable QR code image (accessible at all stages)
+ * @access   Public
  */
 export const getScannerQRCode = async (req, res) => {
   try {
@@ -161,13 +158,11 @@ export const getScannerQRCode = async (req, res) => {
 
     const qrTracker = await prisma.qRTracker.findUnique({ where: { qrCode } });
 
-    if (!qrTracker || !qrTracker.isPublic) {
-      return res
-        .status(404)
-        .json({ message: "QR code not found or is not public." });
+    if (!qrTracker) {
+      return res.status(404).json({ message: "QR code not found." });
     }
 
-    // Use the correct ngrok URL for the report URL
+    // CHANGE: Remove isPublic check - now accessible at all stages
     const reportUrl = `${getBaseUrl()}/api/qr/report/${qrCode}`;
 
     const qrImageBuffer = await QRCode.toBuffer(reportUrl, {
@@ -186,35 +181,106 @@ export const getScannerQRCode = async (req, res) => {
 };
 
 /**
- * @desc    Get public statistics for landing page
- * @access  Public
+ * @desc     Get statistics for landing page (includes all QR codes at all stages)
+ * @access   Public
  */
 export const getPublicStats = async (req, res) => {
   try {
     const [
+      totalQRs,
       totalPublicQRs,
       totalHarvests,
       totalFarmers,
       totalManufacturers,
       totalLabs,
+      qrsByStatus,
     ] = await prisma.$transaction([
-      prisma.qRTracker.count({ where: { isPublic: true } }),
+      // CHANGE: Show all QR codes instead of just public ones as main stat
+      prisma.qRTracker.count(), // All QR codes at all stages
+      prisma.qRTracker.count({ where: { isPublic: true } }), // Keep track of officially public ones
       prisma.harvest.count(),
       prisma.farmerProfile.count(),
       prisma.manufacturerProfile.count(),
       prisma.laboratoryProfile.count(),
+      // Get breakdown by status for all QR codes
+      prisma.qRTracker.groupBy({
+        by: ["status"],
+        _count: {
+          status: true,
+        },
+      }),
     ]);
+
+    // Convert status breakdown to a more readable format
+    const statusBreakdown = qrsByStatus.reduce((acc, item) => {
+      acc[item.status.toLowerCase()] = item._count.status;
+      return acc;
+    }, {});
 
     res.json({
       success: true,
       data: {
-        totalPublicReports: totalPublicQRs,
+        totalReports: totalQRs, // All reports at all stages
+        totalPublicReports: totalPublicQRs, // Only officially public reports
         totalHarvests,
         totalParticipants: totalFarmers + totalManufacturers + totalLabs,
+        statusBreakdown, // Breakdown by status for all QR codes
       },
     });
   } catch (error) {
-    console.error("Error fetching public stats:", error);
+    console.error("Error fetching stats:", error);
     res.status(500).json({ message: "Failed to fetch statistics" });
+  }
+};
+
+/**
+ * @desc     Get QR preview data (accessible at all stages)
+ * @access   Public
+ */
+export const getQRPreview = async (req, res) => {
+  try {
+    const { qrCode } = req.params;
+
+    const qrTracker = await prisma.qRTracker.findUnique({
+      where: { qrCode },
+    });
+
+    if (!qrTracker) {
+      return res.status(404).json({
+        success: false,
+        message: "QR code not found",
+      });
+    }
+
+    // CHANGE: Remove isPublic check - now accessible at all stages
+
+    // Get harvest data
+    const harvest = await prisma.harvest.findUnique({
+      where: { identifier: qrTracker.harvestIdentifier },
+      include: { submittedBy: { include: { user: true } } },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        qrCode: qrTracker.qrCode,
+        productName: qrTracker.productName || `${harvest?.herbSpecies} Product`,
+        batchId: qrTracker.batchId,
+        herbSpecies: harvest?.herbSpecies || "N/A",
+        farmerName: harvest?.submittedBy?.user?.fullName || "N/A",
+        status: qrTracker.status,
+        isPublic: qrTracker.isPublic,
+        harvestIdentifier: qrTracker.harvestIdentifier,
+        harvestSeason: harvest?.harvestSeason || "Unknown Season",
+        createdAt: qrTracker.createdAt,
+        updatedAt: qrTracker.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching QR preview:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch QR preview",
+    });
   }
 };

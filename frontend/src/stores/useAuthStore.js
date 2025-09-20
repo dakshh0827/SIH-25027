@@ -175,11 +175,16 @@ const useAuthStore = create((set, get) => ({
   getProfile: async () => {
     try {
       const { authenticatedFetch } = get();
-      // set({ isLoading: true });
       const data = await authenticatedFetch("/api/auth/profile", {
         method: "GET",
       });
-      set({ profile: data.profile, user: data.user });
+
+      // 🔴 BEFORE (This causes the loop)
+      // set({ profile: data.profile, user: data.user });
+
+      // ✅ AFTER (This fixes the loop)
+      set({ profile: data.profile }); // Only set the profile, not the user
+
       toast.success("Profile loaded successfully", {
         duration: 2000,
         position: "top-right",

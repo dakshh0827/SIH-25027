@@ -8,12 +8,11 @@ import {
   Tag,
   LogOut,
   Loader2,
-  QrCode,
-  RefreshCw,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useReportStore } from "../stores/useReportStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import QRScannerModal from "../components/QRScannerModal";
 
 // Reusable UI components
 const Card = ({ children }) => (
@@ -38,97 +37,6 @@ const LoadingSpinner = ({ message = "Loading..." }) => (
   </div>
 );
 
-// QR Management Section
-const QRManagementSection = ({ userRole }) => {
-  const [qrHistory, setQRHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const { authenticatedFetch } = useAuthStore();
-
-  const fetchQRHistory = async () => {
-    setLoading(true);
-    try {
-      let endpoint;
-      switch (userRole) {
-        case "farmer":
-          endpoint = "/api/qr/farmer/history";
-          break;
-        case "manufacturer":
-          endpoint = "/api/qr/manufacturer/history";
-          break;
-        case "lab":
-          endpoint = "/api/qr/lab/history";
-          break;
-        default:
-          return;
-      }
-
-      const response = await authenticatedFetch(endpoint);
-      setQRHistory(response.data || []);
-    } catch (error) {
-      toast.error("Failed to fetch QR history");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchQRHistory();
-  }, [userRole]);
-
-  return (
-    <div className="space-y-6">
-      <SectionTitle title="QR Code Tracking" />
-
-      {loading ? (
-        <LoadingSpinner message="Loading QR history..." />
-      ) : (
-        <div className="space-y-4">
-          {qrHistory.length > 0 ? (
-            qrHistory.map((qr) => (
-              <div
-                key={qr.qrCode}
-                className="bg-slate-800/50 border border-slate-700/50 p-4 rounded-lg"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold text-white">
-                      {qr.productName || "Product"}
-                    </h4>
-                    <p className="text-sm text-slate-400">QR: {qr.qrCode}</p>
-                    <p className="text-sm text-slate-400">
-                      Status: {qr.status}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500">
-                      {new Date(qr.updatedAt).toLocaleDateString()}
-                    </p>
-                    {qr.isPublic && (
-                      <span className="inline-block mt-1 px-2 py-1 bg-green-600/30 text-green-400 text-xs rounded">
-                        Public
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-slate-500 text-center py-8">No QR codes found</p>
-          )}
-        </div>
-      )}
-
-      <button
-        onClick={fetchQRHistory}
-        className="w-full py-2 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 transition-colors rounded-lg flex items-center justify-center gap-2"
-      >
-        <RefreshCw className="h-4 w-4" />
-        Refresh QR History
-      </button>
-    </div>
-  );
-};
-
 // Form for uploading a new manufacturing report
 const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
@@ -141,7 +49,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
     expiryDate: "",
     notes: "",
     regulatoryTags: [],
-    harvestIdentifier: "", // New field for QR linking
+    harvestIdentifier: "",
   });
   const [tagInput, setTagInput] = useState("");
   const [qrData, setQRData] = useState(null);
@@ -175,31 +83,20 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const result = await onSubmit(formData);
-
-      // Check if QR data is returned
       if (result && result.qr) {
         toast.success(
           `Manufacturing report created with QR code: ${result.qr.qrCode}!`,
-          {
-            duration: 5000,
-          }
+          { duration: 5000 }
         );
-
-        // Show QR code data
         setQRData(result.qr);
       } else if (result && result.qrUpdate) {
         toast.success(
           `Manufacturing report linked to QR ${result.qrUpdate.qrCode}!`,
-          {
-            duration: 5000,
-          }
+          { duration: 5000 }
         );
       }
-
-      // Reset form
       setFormData({
         batchId: "",
         herbUsed: "",
@@ -239,8 +136,8 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             onChange={handleChange}
             required
             disabled={isSubmitting}
-            placeholder="e.g., BATCH-2024-001"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 rounded-lg"
+            placeholder="e.g., BATCH-2025-001"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50"
           />
         </div>
 
@@ -257,8 +154,8 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             id="harvestIdentifier"
             value={formData.harvestIdentifier}
             onChange={handleChange}
-            placeholder="e.g., HRV-1234567890-ABCD"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
+            placeholder="e.g., HARV-2025-018"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:ring-[#34d399] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <p className="mt-1 text-xs text-slate-400">
             Enter the harvest identifier to link this manufacturing report with
@@ -282,7 +179,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             required
             disabled={isSubmitting}
             placeholder="e.g., Turmeric, Ashwagandha"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 rounded-lg"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50"
           />
         </div>
 
@@ -304,7 +201,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             step="0.01"
             min="0"
             placeholder="e.g., 250.5"
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 rounded-lg"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50"
           />
         </div>
 
@@ -324,7 +221,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             required
             disabled={isSubmitting}
             placeholder="Describe the complete manufacturing process, including cleaning, drying, grinding, and packaging steps..."
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50 rounded-lg"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50"
           />
         </div>
 
@@ -342,7 +239,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             onChange={handleChange}
             required
             disabled={isSubmitting}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 rounded-lg"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50"
           >
             <option value="draft">Draft</option>
             <option value="in-progress">In Progress</option>
@@ -366,7 +263,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             onChange={handleChange}
             required
             disabled={isSubmitting}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 rounded-lg"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50"
           />
         </div>
 
@@ -384,7 +281,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             value={formData.expiryDate}
             onChange={handleChange}
             disabled={isSubmitting}
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 rounded-lg"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50"
           />
           <p className="mt-1 text-xs text-slate-400">
             Leave blank if product doesn't have an expiry date
@@ -406,7 +303,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
             disabled={isSubmitting}
             rows="3"
             placeholder="Any additional information about the manufacturing process..."
-            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50 rounded-lg"
+            className="mt-1 block w-full px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none resize-vertical disabled:opacity-50"
           />
         </div>
 
@@ -425,7 +322,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
               onChange={(e) => setTagInput(e.target.value)}
               disabled={isSubmitting}
               placeholder="e.g., AYUSH-GMP, ISO-9001"
-              className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50 rounded-lg"
+              className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 text-white transition-all duration-300 hover:border-[#34d399] focus:border-[#34d399] focus:ring-1 focus:outline-none disabled:opacity-50"
               onKeyPress={(e) => {
                 if (e.key === "Enter") {
                   handleAddTag(e);
@@ -436,7 +333,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
               type="button"
               onClick={handleAddTag}
               disabled={isSubmitting || !tagInput.trim()}
-              className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 rounded-lg"
+              className="flex-shrink-0 px-4 py-3 bg-blue-600/30 text-blue-300 border border-blue-500 hover:bg-blue-700/50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50"
             >
               <Tag className="h-5 w-5" />
             </button>
@@ -446,7 +343,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
               {formData.regulatoryTags.map((tag, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200 rounded-full"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/50 text-sm cursor-pointer hover:bg-blue-600/30 transition-colors duration-200"
                   onClick={() => handleRemoveTag(tag)}
                 >
                   {tag}
@@ -460,7 +357,7 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50 rounded-lg"
+          className="w-full flex items-center justify-center px-4 py-3 bg-[#10b981] border border-[#10b981] text-white font-semibold transition-all duration-300 hover:bg-transparent hover:border-[#34d399] hover:text-[#34d399] active:scale-[0.98] disabled:opacity-50"
         >
           {isSubmitting ? (
             <>
@@ -475,11 +372,9 @@ const UploadManufacturingReport = ({ onSubmit, isSubmitting }) => {
         </button>
       </form>
 
-      {/* QR Code Display */}
       {qrData && (
-        <div className="mt-6 p-4 bg-slate-800/50 border border-green-500/50 rounded-lg">
+        <div className="mt-6 p-4 bg-slate-800/50 border border-green-500/50">
           <div className="flex items-center gap-2 mb-2">
-            <QrCode className="h-5 w-5 text-green-400" />
             <h4 className="text-lg font-semibold text-green-400">
               QR Code Generated
             </h4>
@@ -506,6 +401,15 @@ const ManufacturingHistory = ({ reports, isLoading }) => {
     toast.success(`Viewing details for batch ${report.batchId}`, {
       duration: 2000,
     });
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = date.toLocaleString("default", { month: "short" });
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
   if (isLoading) {
@@ -552,6 +456,7 @@ const ManufacturingHistory = ({ reports, isLoading }) => {
                 >
                   Date
                 </th>
+                {/* ✅ CHANGE: Reverted table header to Harvest ID */}
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
@@ -578,7 +483,7 @@ const ManufacturingHistory = ({ reports, isLoading }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium ${
                         report.status === "completed"
                           ? "bg-green-600/30 text-green-400"
                           : report.status === "in-progress"
@@ -592,9 +497,10 @@ const ManufacturingHistory = ({ reports, isLoading }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {report.effectiveDate || report.date}
+                    {formatDate(report.effectiveDate || report.date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-400">
+                    {/* ✅ CHANGE: Reverted to display Harvest ID */}
                     {report.harvestIdentifier || "N/A"}
                   </td>
                 </tr>
@@ -642,7 +548,7 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
           </p>
           <button
             onClick={onRefresh}
-            className="px-4 py-2 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300 rounded-lg"
+            className="px-4 py-2 bg-[#10b981] text-white border border-[#10b981] hover:bg-transparent hover:text-[#34d399] transition-all duration-300"
           >
             Retry
           </button>
@@ -666,7 +572,7 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
         <SectionTitle title="Manufacturer Profile" />
         <button
           onClick={onRefresh}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50 transition-all duration-300 rounded-lg"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50 transition-all duration-300"
         >
           <Loader2 className="h-4 w-4" />
           Refresh
@@ -674,7 +580,7 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
       </div>
 
       <div className="space-y-6 text-slate-300">
-        <div className="bg-slate-800/30 p-4 border border-slate-700/50 rounded-lg">
+        <div className="bg-slate-800/30 p-4 border border-slate-700/50">
           <h4 className="text-lg font-semibold text-white mb-3">
             Account Information
           </h4>
@@ -701,7 +607,7 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="p-4 bg-slate-700/50 border border-slate-600 rounded-lg">
+          <div className="p-4 bg-slate-700/50 border border-slate-600">
             <Factory className="h-12 w-12 text-[#34d399]" />
           </div>
           <div>
@@ -720,32 +626,32 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-slate-400">AYUSH License Number</p>
-            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30 rounded-lg">
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
               {profile.ayushLicenseNumber}
             </p>
           </div>
           <div>
             <p className="text-sm text-slate-400">Registration Number</p>
-            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30 rounded-lg">
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
               {profile.regNumber}
             </p>
           </div>
           <div>
             <p className="text-sm text-slate-400">PAN</p>
-            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30 rounded-lg">
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
               {profile.pan}
             </p>
           </div>
           <div>
             <p className="text-sm text-slate-400">GSTIN</p>
-            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30 rounded-lg">
+            <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
               {profile.gstin}
             </p>
           </div>
         </div>
         <div className="space-y-2">
           <p className="text-sm text-slate-400">Registered Address</p>
-          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30 rounded-lg">
+          <p className="text-white font-medium bg-slate-800/50 px-3 py-2 border border-slate-700/30">
             {profile.registeredAddress}
           </p>
         </div>
@@ -756,31 +662,38 @@ const ManufacturerProfile = ({ profile, user, isLoading, onRefresh }) => {
 
 const ManufacturerDashboard = () => {
   const [activeSection, setActiveSection] = useState("history");
+  const [modalQrData, setModalQrData] = useState(null);
 
   const {
     isSubmitting,
     submitReport,
     manufacturingReports,
-    setManufacturingReports,
+    fetchManufacturingHistory,
   } = useReportStore();
-  const {
-    logout,
-    getProfile,
-    getManufacturingHistory,
-    profile,
-    user,
-    isLoading,
-  } = useAuthStore();
+  const { logout, getProfile, profile, user, isLoading, authenticatedFetch } =
+    useAuthStore();
 
   const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      await getProfile();
-      await getManufacturingHistory();
+      if (!isLoading && user) {
+        try {
+          await getProfile();
+          await fetchManufacturingHistory(authenticatedFetch);
+        } catch (error) {
+          console.error("Failed to fetch dashboard data:", error);
+        }
+      }
     };
     fetchData();
-  }, [getProfile, getManufacturingHistory]);
+  }, [
+    isLoading,
+    user,
+    getProfile,
+    fetchManufacturingHistory,
+    authenticatedFetch,
+  ]);
 
   const handleUploadSubmit = async (formData) => {
     try {
@@ -789,17 +702,22 @@ const ManufacturerDashboard = () => {
         data: formData,
       });
       if (result) {
-        // Refetch the manufacturing history to ensure data consistency
-        await getManufacturingHistory();
-
-        setTimeout(() => {
-          setActiveSection("history");
-        }, 1000);
-
+        fetchManufacturingHistory(authenticatedFetch);
         toast.success(
           `Manufacturing report for batch ${formData.batchId} submitted successfully!`
         );
-        return result; // Return result to show QR data
+
+        // Open the modal with the new QR data
+        if (result.qrUpdate) {
+          const dataForModal = {
+            ...result.report,
+            ...result.qrUpdate,
+            productName:
+              result.qrUpdate.productName || `Batch ${formData.batchId}`,
+          };
+          setModalQrData(dataForModal);
+        }
+        return result;
       }
     } catch (error) {
       console.error("Error submitting report:", error);
@@ -847,8 +765,6 @@ const ManufacturerDashboard = () => {
             onRefresh={handleRefreshProfile}
           />
         );
-      case "qr":
-        return <QRManagementSection userRole="manufacturer" />;
       default:
         return (
           <ManufacturingHistory
@@ -867,14 +783,14 @@ const ManufacturerDashboard = () => {
           <h1 className="text-2xl font-bold">Manufacturer Dashboard</h1>
           <div className="relative flex gap-3">
             <button
-              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer rounded-lg"
+              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
               onClick={handleLogout}
             >
               <LogOut className="h-5 w-5" />
               Logout
             </button>
             <button
-              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer rounded-lg"
+              className="flex items-center gap-2 px-4 py-2 border border-[#34d399] bg-transparent text-[#34d399] font-semibold transition-all duration-300 hover:bg-[#10b981] hover:border-[#10b981] hover:text-white cursor-pointer"
               onClick={() => handleSectionChange("profile")}
             >
               <User className="h-5 w-5" />
@@ -888,7 +804,7 @@ const ManufacturerDashboard = () => {
               <nav className="space-y-2">
                 <button
                   onClick={() => handleSectionChange("history")}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 cursor-pointer hover:bg-green-600/20 rounded-lg ${
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 cursor-pointer hover:bg-green-600/20 ${
                     activeSection === "history"
                       ? "bg-green-600/30 border-l-4 border-green-500"
                       : "text-slate-400"
@@ -899,7 +815,7 @@ const ManufacturerDashboard = () => {
                 </button>
                 <button
                   onClick={() => handleSectionChange("upload")}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 cursor-pointer hover:bg-[#10b981]/20 rounded-lg ${
+                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 cursor-pointer hover:bg-[#10b981]/20 ${
                     activeSection === "upload"
                       ? "bg-[#10b981]/30 border-l-4 border-[#34d399]"
                       : "text-slate-400"
@@ -908,23 +824,19 @@ const ManufacturerDashboard = () => {
                   <Upload className="h-5 w-5" />
                   Upload New Report
                 </button>
-                <button
-                  onClick={() => handleSectionChange("qr")}
-                  className={`w-full flex items-center gap-4 p-4 transition-all duration-300 cursor-pointer hover:bg-purple-600/20 rounded-lg ${
-                    activeSection === "qr"
-                      ? "bg-purple-600/30 border-l-4 border-purple-500"
-                      : "text-slate-400"
-                  }`}
-                >
-                  <QrCode className="h-5 w-5" />
-                  QR Tracking
-                </button>
               </nav>
             </Card>
           </div>
           <div className="md:col-span-3">
             <Card>{renderSection()}</Card>
           </div>
+
+          {modalQrData && (
+            <QRScannerModal
+              qrData={modalQrData}
+              onClose={() => setModalQrData(null)}
+            />
+          )}
         </div>
       </div>
     </div>

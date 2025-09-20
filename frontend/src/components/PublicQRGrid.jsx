@@ -30,15 +30,34 @@ const PublicQRGrid = () => {
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
 
+  // Get limit based on view mode
+  const getLimit = () => {
+    return viewMode === "grid" ? 4 : 2;
+  };
+
   useEffect(() => {
-    // Initial load
-    fetchPublicQRCodes();
+    // Initial load with grid view limit
+    fetchPublicQRCodes(1, getLimit());
   }, []);
+
+  // Refetch data when view mode changes
+  useEffect(() => {
+    const currentLimit = getLimit();
+    if (pagination.limit !== currentLimit) {
+      // Reset to page 1 when changing view mode with new limit
+      fetchPublicQRCodes(1, currentLimit, searchTerm);
+    }
+  }, [viewMode]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (localSearchTerm.trim() !== searchTerm) {
+      // Reset to page 1 with current view mode limit
       searchPublicQRCodes(localSearchTerm.trim());
+      // After search, refetch with correct limit for current view mode
+      setTimeout(() => {
+        fetchPublicQRCodes(1, getLimit(), localSearchTerm.trim());
+      }, 100);
     }
   };
 
@@ -46,15 +65,37 @@ const PublicQRGrid = () => {
     setLocalSearchTerm("");
     if (searchTerm !== "") {
       searchPublicQRCodes("");
+      // After clearing search, refetch with correct limit for current view mode
+      setTimeout(() => {
+        fetchPublicQRCodes(1, getLimit(), "");
+      }, 100);
     }
   };
 
   const handleRefresh = () => {
-    refreshCurrentPage();
+    // Refresh with current view mode limit
+    fetchPublicQRCodes(pagination.page, getLimit(), searchTerm);
     toast.success("QR codes refreshed!", {
       duration: 2000,
       position: "top-right",
     });
+  };
+
+  const handleViewModeChange = (newMode) => {
+    setViewMode(newMode);
+    // The useEffect will handle refetching with new limit
+  };
+
+  const handleNextPage = () => {
+    if (pagination.hasNext && !isLoading) {
+      fetchPublicQRCodes(pagination.page + 1, getLimit(), searchTerm);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (pagination.hasPrev && !isLoading) {
+      fetchPublicQRCodes(pagination.page - 1, getLimit(), searchTerm);
+    }
   };
 
   const LoadingSpinner = () => (
@@ -118,6 +159,9 @@ const PublicQRGrid = () => {
         Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
         {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
         {pagination.total} QR codes
+        <span className="ml-2 text-emerald-400">
+          ({viewMode === "grid" ? "4" : "2"} per page in {viewMode} view)
+        </span>
       </div>
 
       <div className="flex items-center space-x-4">
@@ -127,7 +171,7 @@ const PublicQRGrid = () => {
 
         <div className="flex items-center space-x-2">
           <button
-            onClick={loadPreviousPage}
+            onClick={handlePreviousPage}
             disabled={!pagination.hasPrev || isLoading}
             className="p-2 border border-slate-600 disabled:border-slate-800 disabled:text-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-colors disabled:cursor-not-allowed"
           >
@@ -135,7 +179,7 @@ const PublicQRGrid = () => {
           </button>
 
           <button
-            onClick={loadNextPage}
+            onClick={handleNextPage}
             disabled={!pagination.hasNext || isLoading}
             className="p-2 border border-slate-600 disabled:border-slate-800 disabled:text-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-colors disabled:cursor-not-allowed"
           >
@@ -158,6 +202,11 @@ const PublicQRGrid = () => {
             </h2>
             <p className="text-slate-400">
               Browse verified traceability reports from our network
+              <span className="block text-sm mt-1 text-emerald-400">
+                {viewMode === "grid"
+                  ? "Grid view - 4 per page"
+                  : "List view - 2 per page"}
+              </span>
             </p>
           </div>
 
@@ -166,24 +215,24 @@ const PublicQRGrid = () => {
             {/* View Mode Toggle */}
             <div className="hidden sm:flex border border-slate-700">
               <button
-                onClick={() => setViewMode("grid")}
+                onClick={() => handleViewModeChange("grid")}
                 className={`p-2 transition-colors ${
                   viewMode === "grid"
                     ? "bg-emerald-600 text-white"
                     : "text-slate-400 hover:text-white hover:bg-slate-800"
                 }`}
-                title="Grid view"
+                title="Grid view (8 per page)"
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setViewMode("list")}
+                onClick={() => handleViewModeChange("list")}
                 className={`p-2 transition-colors ${
                   viewMode === "list"
                     ? "bg-emerald-600 text-white"
                     : "text-slate-400 hover:text-white hover:bg-slate-800"
                 }`}
-                title="List view"
+                title="List view (2 per page)"
               >
                 <List className="w-4 h-4" />
               </button>
@@ -269,20 +318,26 @@ const PublicQRGrid = () => {
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4"
+                : "space-y-6"
             }
           >
             {publicQRCodes.map((qrData) => (
-              <QRCodeCard key={qrData.qrCode} qrData={qrData} />
+              <QRCodeCard
+                key={qrData.qrCode}
+                qrData={qrData}
+                viewMode={viewMode}
+              />
             ))}
           </div>
 
-          {/* Pagination */}
-          {pagination.totalPages > 1 && <PaginationControls />}
+          {/* Pagination - Show if there are multiple pages or if we're not on page 1 */}
+          {(pagination.totalPages > 1 || pagination.page > 1) && (
+            <PaginationControls />
+          )}
 
           {/* Loading overlay for pagination */}
           {isLoading && publicQRCodes.length > 0 && (
-            <div className="fixed bottom-4 right-4 bg-slate-800 border border-slate-600 px-4 py-2 flex items-center gap-3 shadow-lg">
+            <div className="fixed bottom-4 right-4 bg-slate-800 border border-slate-600 px-4 py-2 flex items-center gap-3 shadow-lg z-50">
               <div className="animate-spin w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full"></div>
               <span className="text-sm text-white">Loading...</span>
             </div>

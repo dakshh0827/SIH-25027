@@ -177,7 +177,7 @@ const LandingPage = () => {
           </section>
 
           {/* Public QR Codes Section - Consistent background */}
-          <section className="py-24">
+          <section>
             <div className="container mx-auto px-4">
               <div className="text-center mb-16 fade-in-effect">
                 <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
