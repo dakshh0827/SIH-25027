@@ -14,6 +14,8 @@ import toast from "react-hot-toast";
 const QRScannerModal = ({ qrData, onClose }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState("");
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const {
     getScannerImageUrl,
     downloadScannerQR,
@@ -21,8 +23,43 @@ const QRScannerModal = ({ qrData, onClose }) => {
     getReportUrl,
   } = usePublicStore();
 
-  const scannerImageUrl = getScannerImageUrl(qrData.qrCode);
-  const reportUrl = getReportUrl(qrData.qrCode);
+  // Force the correct ngrok URL directly
+  const API_BASE_URL = "https://cfacb9603025.ngrok-free.app";
+  const reportUrl = `${API_BASE_URL}/api/qr/report/${qrData.qrCode}`;
+  const shareableUrl = `${API_BASE_URL}/api/qr/report/${qrData.qrCode}`;
+
+  // Client-side QR generation function using QR Server API
+  const generateClientSideQR = (size = 256) => {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(
+      shareableUrl
+    )}&ecc=H&margin=10`;
+  };
+
+  // Alternative endpoints to try
+  const imageUrlsToTry = [
+    `${API_BASE_URL}/api/public/qr/${qrData.qrCode}/scanner`,
+    qrData.qrImageUrl && !qrData.qrImageUrl.includes("localhost")
+      ? qrData.qrImageUrl
+      : null,
+    generateClientSideQR(256), // Client-side generated QR
+  ].filter(Boolean);
+
+  // Set initial image URL
+  useEffect(() => {
+    if (imageUrlsToTry.length > 0) {
+      setCurrentImageUrl(imageUrlsToTry[0]);
+    }
+  }, [qrData.qrCode]);
+
+  // Debug logging
+  console.log("QRScannerModal Debug:", {
+    qrCode: qrData.qrCode,
+    currentImageUrl,
+    reportUrl,
+    shareableUrl,
+    retryAttempt,
+    imageUrlsToTry,
+  });
 
   useEffect(() => {
     // Prevent body scroll when modal is open
@@ -34,9 +71,38 @@ const QRScannerModal = ({ qrData, onClose }) => {
 
   const handleDownload = async () => {
     try {
-      await downloadScannerQR(qrData.qrCode, qrData.productName);
+      // For download, always use a working QR generation
+      const downloadUrl = generateClientSideQR(512); // Higher resolution for download
+
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error("Failed to fetch QR image");
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `qr-scanner-${qrData.qrCode}-${
+        qrData.productName?.replace(/\s+/g, "-") || "product"
+      }.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(blobUrl);
+
+      toast.success("QR code downloaded successfully!", {
+        duration: 2000,
+        position: "top-right",
+      });
     } catch (error) {
       console.error("Download error:", error);
+      toast.error("Failed to download QR code", {
+        duration: 3000,
+        position: "top-right",
+      });
     }
   };
 
@@ -50,8 +116,7 @@ const QRScannerModal = ({ qrData, onClose }) => {
 
   const handleCopyUrl = async () => {
     try {
-      const fullReportUrl = `${window.location.origin}/report/${qrData.qrCode}`;
-      await navigator.clipboard.writeText(fullReportUrl);
+      await navigator.clipboard.writeText(shareableUrl);
       toast.success("Report URL copied to clipboard!", {
         duration: 2000,
         position: "top-right",
@@ -77,6 +142,47 @@ const QRScannerModal = ({ qrData, onClose }) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
+  };
+
+  const handleImageError = () => {
+    console.error("QR Image failed to load:", currentImageUrl);
+
+    // Try next image URL if available
+    if (retryAttempt < imageUrlsToTry.length - 1) {
+      const nextAttempt = retryAttempt + 1;
+      const nextUrl = imageUrlsToTry[nextAttempt];
+      console.log(`Trying fallback image ${nextAttempt + 1}:`, nextUrl);
+
+      setRetryAttempt(nextAttempt);
+      setCurrentImageUrl(nextUrl);
+      setImageLoaded(false);
+      setImageError(false);
+      return;
+    }
+
+    // All URLs failed - this should not happen with client-side generation as fallback
+    setImageError(true);
+    toast.error("Failed to load QR scanner image", {
+      duration: 3000,
+      position: "top-right",
+    });
+  };
+
+  const handleImageLoad = () => {
+    console.log("QR Image loaded successfully:", currentImageUrl);
+    setImageLoaded(true);
+  };
+
+  // Get source type for display
+  const getImageSourceType = () => {
+    if (currentImageUrl.includes("api.qrserver.com")) {
+      return "Generated QR Code";
+    } else if (currentImageUrl.includes("/api/public/qr/")) {
+      return "Backend QR Service";
+    } else if (currentImageUrl.startsWith("data:")) {
+      return "Stored QR Image";
+    }
+    return "Unknown Source";
   };
 
   return (
@@ -141,24 +247,29 @@ const QRScannerModal = ({ qrData, onClose }) => {
                   <div className="text-center">
                     <div className="text-lg mb-2">⚠️</div>
                     <div className="text-sm">Failed to load QR code</div>
+                    <div className="text-xs mt-2 text-slate-500">
+                      All fallback sources failed
+                    </div>
                   </div>
                 </div>
               ) : (
                 <img
-                  src={scannerImageUrl}
+                  src={currentImageUrl}
                   alt={`QR Scanner for ${qrData.productName}`}
                   className="w-64 h-64 object-contain"
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => {
-                    setImageError(true);
-                    toast.error("Failed to load QR scanner image", {
-                      duration: 3000,
-                      position: "top-right",
-                    });
-                  }}
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
                   style={{ display: imageLoaded ? "block" : "none" }}
+                  crossOrigin="anonymous"
+                  key={`${qrData.qrCode}-${retryAttempt}`}
                 />
               )}
+            </div>
+
+            {/* QR Status Info */}
+            <div className="text-xs text-center text-slate-400">
+              <p>Source: {getImageSourceType()}</p>
+              <p>Points to: {shareableUrl}</p>
             </div>
 
             {/* Instructions */}

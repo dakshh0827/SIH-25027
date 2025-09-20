@@ -13,6 +13,14 @@ class QRTrackingService {
   }
 
   /**
+   * Get the base URL for QR codes
+   * Priority: NGROK_URL > API_BASE_URL > localhost fallback
+   */
+  getBaseUrl() {
+    return "https://cfacb9603025.ngrok-free.app";
+  }
+
+  /**
    * Initialize QR tracking from harvest
    * @param {string} harvestIdentifier - The harvest identifier
    * @returns {Object} QR tracking data
@@ -64,10 +72,8 @@ class QRTrackingService {
       const qrCode = this.generateQRCode();
       console.log(`3. Generated QR code: ${qrCode}`);
 
-      // 4. Create public tracking URL
-      const publicUrl = `${
-        process.env.API_BASE_URL || "http://localhost:5000"
-      }/api/qr/report/${qrCode}`;
+      // 4. Create public tracking URL using the correct base URL
+      const publicUrl = `${this.getBaseUrl()}/api/qr/report/${qrCode}`;
       console.log(`4. Public URL: ${publicUrl}`);
 
       // 5. Generate QR code image (we'll store this in stageCompletions for now)
@@ -341,12 +347,16 @@ class QRTrackingService {
   /**
    * Generate QR code image
    * @param {string} qrCode - The QR code
-   * @param {string} publicUrl - The public tracking URL
+   * @param {string} publicUrl - The public tracking URL (optional, will use default base URL if not provided)
    * @returns {string} QR image data URL
    */
-  async generateQRImage(qrCode, publicUrl) {
+  async generateQRImage(qrCode, publicUrl = null) {
     try {
-      const qrImageDataUrl = await QRCode.toDataURL(publicUrl, {
+      // If no publicUrl provided, generate one using the correct base URL
+      const urlToEncode =
+        publicUrl || `${this.getBaseUrl()}/api/qr/report/${qrCode}`;
+
+      const qrImageDataUrl = await QRCode.toDataURL(urlToEncode, {
         width: 256,
         margin: 2,
         color: {
@@ -750,10 +760,8 @@ class QRTrackingService {
         throw new Error(`QR code ${qrCode} is not public`);
       }
 
-      // Create the report URL that QR will point to
-      const reportUrl = `${
-        process.env.FRONTEND_URL || "http://localhost:3000"
-      }/report/${qrCode}`;
+      // Create the report URL that QR will point to using ngrok URL
+      const reportUrl = `${this.getBaseUrl()}/report/${qrCode}`;
 
       // Generate high-quality QR code for scanning
       const qrImageBuffer = await QRCode.toBuffer(reportUrl, {
