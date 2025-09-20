@@ -104,139 +104,182 @@ export const generateReportHTML = (trackingData) => {
       }</title>
       <style>
         body { 
-          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+          font-family: 'Arial', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
           font-size: 12px; 
-          color: #333; 
-          line-height: 1.4;
+          color: #1a1a1a; 
+          line-height: 1.5;
           margin: 0;
           padding: 0;
+          background-color: #ffffff;
         }
         .container { 
-          max-width: 800px; 
+          max-width: 850px; 
           margin: auto; 
-          padding: 20px; 
+          padding: 30px; 
+          background-color: #ffffff;
         }
         .header { 
           text-align: center; 
-          border-bottom: 3px solid #e5e7eb; 
-          padding-bottom: 20px; 
-          margin-bottom: 30px;
-          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-          padding: 30px;
-          border-radius: 12px;
-          margin: -20px -20px 30px -20px;
+          border: 2px solid #2c3e50; 
+          padding: 35px;
+          margin-bottom: 40px;
+          background-color: #f8f9fa;
+          border-radius: 0;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .header h1 { 
-          margin: 0 0 15px 0; 
-          color: #111; 
-          font-size: 28px; 
+          margin: 0 0 20px 0; 
+          color: #2c3e50; 
+          font-size: 32px; 
           font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
         }
         .header p { 
-          margin: 8px 0; 
-          color: #555; 
-          font-size: 14px; 
+          margin: 10px 0; 
+          color: #34495e; 
+          font-size: 15px;
+          font-weight: 500;
         }
         .header .status-line {
-          margin: 15px 0;
+          margin: 20px 0;
           font-size: 16px;
+          font-weight: 600;
         }
         .section { 
-          margin-bottom: 30px; 
+          margin-bottom: 35px; 
           page-break-inside: avoid;
+          border: 1px solid #bdc3c7;
+          border-radius: 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.12);
         }
         .section-header { 
-          background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+          background-color: #2c3e50;
           color: white;
-          padding: 15px 20px; 
-          border-radius: 8px 8px 0 0;
+          padding: 18px 25px; 
           margin: 0;
+          border-bottom: 3px solid #34495e;
         }
         .section-header h2 { 
           margin: 0; 
-          font-size: 18px; 
-          font-weight: 600;
+          font-size: 20px; 
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         .section-content { 
-          padding: 25px; 
-          border: 1px solid #d1d5db; 
-          border-top: none; 
-          border-radius: 0 0 8px 8px;
+          padding: 30px; 
           background-color: #ffffff;
         }
         .grid { 
           display: grid; 
           grid-template-columns: 1fr 1fr; 
-          gap: 15px 25px; 
+          gap: 20px 30px;
+          margin-bottom: 15px;
         }
         .grid-3 {
           display: grid; 
           grid-template-columns: 1fr 1fr 1fr; 
-          gap: 15px 20px; 
+          gap: 20px 25px; 
         }
         .grid-item strong { 
-          color: #374151; 
-          font-weight: 600; 
+          color: #2c3e50; 
+          font-weight: 700; 
           font-size: 11px; 
           text-transform: uppercase; 
           display: block; 
-          margin-bottom: 6px;
-          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+          letter-spacing: 1px;
+          border-bottom: 1px solid #ecf0f1;
+          padding-bottom: 3px;
         }
         .grid-item p { 
           margin: 0; 
           font-size: 14px;
-          color: #111827;
+          color: #2c3e50;
+          font-weight: 500;
           word-wrap: break-word;
+          line-height: 1.4;
         }
         .full-width { 
           grid-column: 1 / -1; 
         }
         .highlight-box {
-          background-color: #fef3c7;
-          border: 1px solid #f59e0b;
-          border-radius: 6px;
-          padding: 15px;
-          margin: 15px 0;
+          background-color: #fff3cd;
+          border: 2px solid #ffc107;
+          padding: 20px;
+          margin: 20px 0;
         }
         .info-box {
-          background-color: #dbeafe;
-          border: 1px solid #3b82f6;
-          border-radius: 6px;
-          padding: 15px;
-          margin: 15px 0;
+          background-color: #d1ecf1;
+          border: 2px solid #17a2b8;
+          padding: 20px;
+          margin: 20px 0;
         }
         .success-box {
-          background-color: #d1fae5;
-          border: 1px solid #10b981;
-          border-radius: 6px;
-          padding: 15px;
-          margin: 15px 0;
+          background-color: #d4edda;
+          border: 2px solid #28a745;
+          padding: 20px;
+          margin: 20px 0;
         }
         .footer { 
           text-align: center; 
           margin-top: 50px; 
-          padding-top: 20px;
-          border-top: 1px solid #e5e7eb;
-          font-size: 10px; 
-          color: #6b7280;
+          padding: 25px;
+          border: 1px solid #dee2e6;
+          background-color: #f8f9fa;
+          font-size: 11px; 
+          color: #6c757d;
         }
         .timestamps {
-          background-color: #f9fafb;
-          padding: 15px;
-          border-radius: 6px;
-          margin: 20px 0;
+          background-color: #f8f9fa;
+          padding: 20px;
+          margin: 25px 0;
+          border: 1px solid #dee2e6;
         }
         .no-data {
           text-align: center;
-          padding: 20px;
-          color: #6b7280;
+          padding: 30px;
+          color: #6c757d;
           font-style: italic;
+          font-size: 16px;
+          background-color: #f8f9fa;
+          border: 1px solid #dee2e6;
+          margin: 20px 0;
+        }
+        .stage-completion {
+          background-color: #e3f2fd;
+          border-left: 4px solid #1976d2;
+          padding: 20px;
+          margin: 20px 0;
+        }
+        .stage-completion h4 {
+          margin: 0 0 15px 0;
+          color: #1565c0;
+          font-size: 16px;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+        .metadata-box {
+          background-color: #f1f3f4;
+          padding: 15px;
+          margin-top: 15px;
+          border: 1px solid #dadce0;
+        }
+        .status-badge {
+          padding: 6px 12px;
+          color: white;
+          font-weight: 700;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         @media print {
           body { font-size: 11px; }
-          .container { padding: 15px; }
+          .container { padding: 20px; }
           .section { page-break-inside: avoid; }
+          .header { box-shadow: none; }
+          .section { box-shadow: none; }
         }
       </style>
     </head>
@@ -469,33 +512,7 @@ export const generateReportHTML = (trackingData) => {
             <div class="no-data">Laboratory testing data not yet available</div>
           </div>
         </div>`
-        }
-
-        <!-- ADDITIONAL STAGE COMPLETIONS -->
-        ${
-          Object.keys(trackingData.stageCompletions || {}).length > 0
-            ? `
-        <div class="section">
-          <div class="section-header"><h2>📋 Complete Process Timeline</h2></div>
-          <div class="section-content">
-            ${Object.entries(trackingData.stageCompletions || {})
-              .map(([stageName, stageData]) => {
-                if (
-                  ["harvestRecorded", "manufacturing", "labTesting"].includes(
-                    stageName
-                  )
-                )
-                  return "";
-                return renderStageCompletion(
-                  stageName.charAt(0).toUpperCase() + stageName.slice(1),
-                  stageData
-                );
-              })
-              .join("")}
-          </div>
-        </div>`
-            : ""
-        }
+        } 
 
         <!-- TIMESTAMPS SECTION -->
         <div class="section">

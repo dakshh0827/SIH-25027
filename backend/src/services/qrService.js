@@ -669,6 +669,110 @@ class QRTrackingService {
   }
 
   /**
+   * Get all public QR codes for consumer browsing with enhanced data
+   * @param {number} limit - Number of records to fetch
+   * @param {number} offset - Number of records to skip
+   * @returns {Array} Public QR codes with harvest details
+   */
+  async getAllPublicQRs(limit = 20, offset = 0) {
+    try {
+      const qrTrackers = await prisma.qRTracker.findMany({
+        where: {
+          isPublic: true,
+          status: "PUBLIC",
+        },
+        take: limit,
+        skip: offset,
+        orderBy: { updatedAt: "desc" },
+      });
+
+      // Enrich with harvest data
+      const enrichedQRs = await Promise.all(
+        qrTrackers.map(async (qr) => {
+          const harvest = await prisma.harvest.findUnique({
+            where: { identifier: qr.harvestIdentifier },
+            include: {
+              submittedBy: {
+                include: {
+                  user: {
+                    select: { fullName: true },
+                  },
+                },
+              },
+            },
+          });
+
+          return {
+            qrCode: qr.qrCode,
+            productName: qr.productName || `${harvest?.herbSpecies} Product`,
+            batchId: qr.batchId,
+            status: qr.status,
+            harvestIdentifier: qr.harvestIdentifier,
+            herbSpecies: harvest?.herbSpecies || "Unknown Herb",
+            harvestLocation: harvest?.location || "Unknown Location",
+            farmerName:
+              harvest?.submittedBy?.user?.fullName || "Unknown Farmer",
+            fpoName: harvest?.submittedBy?.fpoName || "Unknown FPO",
+            publicUrl: qr.publicUrl,
+            reportUrl: `/api/qr/report/${qr.qrCode}`,
+            scannerImageUrl: `/api/public/qr/${qr.qrCode}/scanner`,
+            qrImageUrl: qr.stageCompletions?.qrImageUrl || null,
+            createdAt: qr.createdAt,
+            updatedAt: qr.updatedAt,
+          };
+        })
+      );
+
+      return enrichedQRs;
+    } catch (error) {
+      console.error("Error getting public QR codes:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate scannable QR code image for consumer use
+   * @param {string} qrCode - The QR code
+   * @returns {Buffer} QR code image buffer
+   */
+  async generateScannerQRImage(qrCode) {
+    try {
+      // Verify QR exists and is public
+      const qrTracker = await prisma.qRTracker.findUnique({
+        where: { qrCode },
+      });
+
+      if (!qrTracker) {
+        throw new Error(`QR tracker not found for code: ${qrCode}`);
+      }
+
+      if (!qrTracker.isPublic) {
+        throw new Error(`QR code ${qrCode} is not public`);
+      }
+
+      // Create the report URL that QR will point to
+      const reportUrl = `${
+        process.env.FRONTEND_URL || "http://localhost:3000"
+      }/report/${qrCode}`;
+
+      // Generate high-quality QR code for scanning
+      const qrImageBuffer = await QRCode.toBuffer(reportUrl, {
+        width: 512,
+        margin: 4,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
+        errorCorrectionLevel: "H", // High error correction
+      });
+
+      return qrImageBuffer;
+    } catch (error) {
+      console.error("Error generating scanner QR image:", error);
+      throw error;
+    }
+  }
+  /**
    * Clean up - close Prisma connection
    */
   async disconnect() {
