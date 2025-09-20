@@ -1,4 +1,3 @@
-// After
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -7,6 +6,34 @@ generator client {
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+model QRTracker {
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  qrCode            String             @unique // The QR code string/hash
+  productName       String?            // Product name (set by manufacturer)
+  batchId           String?            // Manufacturing batch ID
+  status            QRStatus           @default(INITIALIZED)
+  isPublic          Boolean            @default(false) // Whether it's accessible to consumers
+  
+  // Primary linking field - harvest identifier (human-readable)
+  harvestIdentifier String             @unique // Links all reports through this identifier
+  
+  // Metadata
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  stageCompletions  Json               // Track which stages are completed
+  publicUrl         String?            // Public URL for consumer access
+  
+  @@map("qr_trackers")
+}
+
+enum QRStatus {
+  INITIALIZED      // Created with harvest
+  MANUFACTURING    // Manufacturing data added
+  TESTING         // Lab testing data added  
+  COMPLETED       // All stages completed
+  PUBLIC          // Made available to consumers
 }
 
 enum Role {
@@ -31,11 +58,11 @@ model User {
 }
 
 model AdminProfile {
-  id              String  @id @default(auto()) @map("_id") @db.ObjectId
-  adminId         String  @unique // This is now auto-generated
-  idProofUrl      String
-  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId          String  @unique @db.ObjectId
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  adminId         String  @unique // This is now auto-generated
+  idProofUrl      String
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String  @unique @db.ObjectId
 }
 
 model FarmerProfile {
@@ -63,7 +90,6 @@ model ManufacturerProfile {
   user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId                 String              @unique @db.ObjectId
   reports                ManufacturingReport[]
-  // FIXED: Removed the 'labReports' relation to make the models independent.
 }
 
 model LaboratoryProfile {
@@ -82,7 +108,7 @@ model LaboratoryProfile {
 
 model Harvest {
   id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  identifier      String        @unique
+  identifier      String        @unique // Human-readable identifier (e.g., HARV-2025-001)
   herbSpecies     String
   harvestWeightKg Float
   harvestSeason   String
@@ -100,12 +126,16 @@ model Harvest {
 
 model ManufacturingReport {
   id                      String        @id @default(auto()) @map("_id") @db.ObjectId
-  identifier              String        @unique
+  identifier              String        @unique // Human-readable identifier (e.g., MFG-2025-001)
   batchId                 String        @unique
   herbUsed                String
   quantityUsedKg          Float
   processingSteps         String
   status                  String        @default("in-progress")
+  
+  // Links to harvest through human-readable identifier
+  harvestIdentifier       String        // References Harvest.identifier
+  
   createdBy               ManufacturerProfile @relation(fields: [manufacturerProfileId], references: [id])
   manufacturerProfileId   String        @db.ObjectId
   createdAt               DateTime      @default(now())
@@ -118,17 +148,17 @@ model ManufacturingReport {
 
 model LabReport {
   id                        String             @id @default(auto()) @map("_id") @db.ObjectId
-  identifier                String             @unique
+  identifier                String             @unique // Human-readable identifier (e.g., LAB-2025-001)
   testType                  String
   testResult                String
   labReportFileUrl          String
   status                    String             @default("final")
   
+  // Links to harvest through human-readable identifier
+  harvestIdentifier         String             // References Harvest.identifier
+  
   createdBy                 LaboratoryProfile @relation(fields: [laboratoryProfileId], references: [id])
   laboratoryProfileId       String            @db.ObjectId
-  
-  // FIXED: This is now a simple string field with no relation.
-  manufacturingReportId     String
   
   createdAt                 DateTime           @default(now())
   updatedAt                 DateTime           @updatedAt

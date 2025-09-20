@@ -1,4 +1,4 @@
-import React from "react"; // Import React to use useEffect
+import React from "react";
 import { Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./stores/useAuthStore";
@@ -7,10 +7,11 @@ import LandingPage from "./pages/LandingPage";
 import FarmerDashboard from "./pages/FarmerDashboard";
 import ManufacturerDashboard from "./pages/ManufacturerDashboard";
 import LabsDashboard from "./pages/LabsDashboard";
-import SignupForm from "./components/auth/SignupForm";
 import AdminDashboard from "./pages/AdminDashboard";
+import SignupForm from "./components/auth/SignupForm";
+import { PublicQRTracker } from "./components/QRComponents";
 
-// --- Helper Components (No changes needed here) ---
+// --- Helper Components ---
 
 const ProtectedRoute = () => {
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -51,8 +52,7 @@ const GuestRoute = ({ children }) => {
 // --- Main App Component ---
 
 const App = () => {
-  // FIX: Call restoreSession from a useEffect hook here.
-  // This ensures the session check runs only ONCE when the app mounts.
+  // Initialize session restoration on app mount
   const restoreSession = useAuthStore((state) => state.restoreSession);
 
   React.useEffect(() => {
@@ -61,7 +61,43 @@ const App = () => {
 
   return (
     <>
-      <Toaster position="top-right" reverseOrder={false} />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        gutter={8}
+        containerClassName=""
+        containerStyle={{}}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#1e293b",
+            color: "#fff",
+            border: "1px solid #334155",
+          },
+          success: {
+            duration: 3000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 5000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+          loading: {
+            duration: Infinity,
+            style: {
+              background: "#1e293b",
+              color: "#fff",
+              border: "1px solid #334155",
+            },
+          },
+        }}
+      />
       <div className="min-h-screen bg-slate-950">
         <Routes>
           {/* Public/Guest routes */}
@@ -90,7 +126,10 @@ const App = () => {
             }
           />
 
-          {/* Protected routes */}
+          {/* QR Tracking routes - PUBLIC ACCESS (no authentication required) */}
+          <Route path="/track/:qrCode" element={<PublicQRTracker />} />
+
+          {/* Protected dashboard routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/farmer" element={<FarmerDashboard />} />
             <Route path="/manufacturer" element={<ManufacturerDashboard />} />

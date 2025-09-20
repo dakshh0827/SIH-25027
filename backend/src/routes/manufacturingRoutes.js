@@ -1,23 +1,21 @@
-// routes/manufacturingRoutes.js
+// routes/manufacturingRoutes.js - Updated with QR integration
 import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware.js";
-import { validate } from "../middleware/validationMiddleware.js";
-import { manufacturingReportSchema } from "../utils/validationSchemas.js";
 import {
   createManufacturingReport,
   getManufacturingHistory,
+  getManufacturerQRHistory,
 } from "../controllers/manufacturingController.js";
 
 const router = express.Router();
 
-router.post(
-  "/",
-  protect,
-  authorize("manufacturer"),
-  validate(manufacturingReportSchema),
-  createManufacturingReport
-);
+// All routes are protected and authorized for manufacturers only
+router.use(protect);
+router.use(authorize("manufacturer"));
 
-router.get("/", protect, authorize("manufacturer"), getManufacturingHistory);
+// Manufacturing report routes
+router.post("/", createManufacturingReport);
+router.get("/history", getManufacturingHistory);
+router.get("/qr-history", getManufacturerQRHistory);
 
 export default router;

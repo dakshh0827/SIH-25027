@@ -34,40 +34,6 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  // checkAuth: () => {
-  //   try {
-  //     const token = localStorage.getItem("token");
-  //     if (token) {
-  //       const decoded = jwtDecode(token);
-  //       if (decoded.exp * 1000 > Date.now()) {
-  //         set({ user: decoded, userType: decoded.role, token: token });
-  //         toast.success("Welcome back! Session restored.", {
-  //           duration: 2000,
-  //           position: "top-right",
-  //           style: { background: "#10b981", color: "#fff" },
-  //         });
-  //       } else {
-  //         set({ user: null, userType: null, token: null, profile: null });
-  //         localStorage.removeItem("token");
-  //         toast.error("Your session has expired. Please log in again.", {
-  //           duration: 4000,
-  //           position: "top-right",
-  //           style: { background: "#ef4444", color: "#fff" },
-  //         });
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error("Error checking auth:", error);
-  //     set({ user: null, userType: null, token: null, profile: null });
-  //     localStorage.removeItem("token");
-  //     toast.error("Authentication error. Please log in again.", {
-  //       duration: 4000,
-  //       position: "top-right",
-  //       style: { background: "#ef4444", color: "#fff" },
-  //     });
-  //   }
-  // },
-
   login: (userData, accessToken) => {
     try {
       set({
@@ -120,7 +86,8 @@ const useAuthStore = create((set, get) => ({
       );
     } finally {
       set({ user: null, accessToken: null, isLoading: false, profile: null });
-      // FIX: Removed localStorage.removeItem("token")
+      // Clear QR data on logout
+      useReportStore.getState().clearQRData();
       toast.success(
         currentUser
           ? `Goodbye, ${currentUser.fullName}! You've been logged out.`
@@ -237,50 +204,19 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  // FIXED: Correct harvest history fetching
   getHarvestHistory: async () => {
     const { authenticatedFetch, showInfo, handleApiError, userType } = get();
     if (userType !== "farmer") return;
 
     const { setHarvestRecords } = useReportStore.getState();
-    // set({ isLoading: true });
 
     try {
       showInfo("Fetching harvest history...");
-      const records = await authenticatedFetch("/api/harvests");
+      // FIXED: Use correct endpoint
+      const response = await authenticatedFetch("/api/harvests/history");
 
-      const safeRecords = Array.isArray(records) ? records : [];
-
-      const formattedRecords = safeRecords.map((record) => ({
-        ...record,
-        id: record.id || record._id || Date.now() + Math.random(),
-        createdAt: record.createdAt || new Date().toISOString(),
-        status: record.status || "Pending",
-      }));
-
-      setHarvestRecords(formattedRecords);
-      // set({ isLoading: false });
-      toast.dismiss();
-      showInfo("Harvest history updated.");
-      return formattedRecords;
-    } catch (error) {
-      handleApiError(error, "Failed to fetch harvest history.");
-      // set({ isLoading: false });
-      useReportStore.getState().setHarvestRecords([]);
-      throw error;
-    }
-  },
-
-  getManufacturingHistory: async () => {
-    const { authenticatedFetch, showInfo, handleApiError, userType } = get();
-    if (userType !== "manufacturer") return;
-
-    const { setManufacturingReports } = useReportStore.getState();
-    // set({ isLoading: true });
-
-    try {
-      showInfo("Fetching manufacturing history...");
-      const response = await authenticatedFetch("/api/manufacturing_reports");
-
+      // Handle response structure
       const records = response?.data || response || [];
       const safeRecords = Array.isArray(records) ? records : [];
 
@@ -288,22 +224,153 @@ const useAuthStore = create((set, get) => ({
         ...record,
         id: record.id || record._id || Date.now() + Math.random(),
         createdAt: record.createdAt || new Date().toISOString(),
+        status: record.status || "completed",
+      }));
+
+      setHarvestRecords(formattedRecords);
+      toast.dismiss();
+      showInfo(`Loaded ${formattedRecords.length} harvest records.`);
+      return formattedRecords;
+    } catch (error) {
+      console.error("Harvest history fetch error:", error);
+      handleApiError(error, "Failed to fetch harvest history.");
+      useReportStore.getState().setHarvestRecords([]);
+      throw error;
+    }
+  },
+
+  // NEW: QR history fetching for farmers
+  getQRHistory: async () => {
+    const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+    if (userType !== "farmer") return;
+
+    const { setQRHistory } = useReportStore.getState();
+
+    try {
+      showInfo("Fetching QR history...");
+      // Use QR history endpoint
+      const response = await authenticatedFetch("/api/harvests/qr-history");
+
+      const qrHistory = response?.data || response || [];
+      const safeQRHistory = Array.isArray(qrHistory) ? qrHistory : [];
+
+      setQRHistory(safeQRHistory);
+      toast.dismiss();
+      showInfo(`Loaded ${safeQRHistory.length} QR codes.`);
+      return safeQRHistory;
+    } catch (error) {
+      console.error("QR history fetch error:", error);
+      handleApiError(error, "Failed to fetch QR history.");
+      useReportStore.getState().setQRHistory([]);
+      throw error;
+    }
+  },
+
+  // NEW: Combined history fetch for farmers
+  getFarmerHistory: async () => {
+    const { userType } = get();
+    if (userType !== "farmer") return { harvests: [], qrHistory: [] };
+
+    try {
+      const [harvests, qrHistory] = await Promise.all([
+        get().getHarvestHistory(),
+        get().getQRHistory(),
+      ]);
+
+      return { harvests, qrHistory };
+    } catch (error) {
+      console.error("Error fetching farmer history:", error);
+      return { harvests: [], qrHistory: [] };
+    }
+  },
+
+  // in useAuthStore.js
+
+  getManufacturingHistory: async () => {
+    // FIX: Use get() to access this store's state, not useAuthStore.getState()
+    const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+    if (userType !== "manufacturer") {
+      console.warn("getManufacturingHistory called by non-manufacturer user");
+      return [];
+    }
+
+    // FIX: Get the setter function from the correct store (`useReportStore`)
+    const { setManufacturingReports } = useReportStore.getState();
+
+    try {
+      showInfo("Fetching manufacturing history...");
+      const response = await authenticatedFetch(
+        "/api/manufacturing_reports/history"
+      );
+
+      console.log("Manufacturing history response:", response);
+
+      let records = [];
+      if (response?.data) {
+        records = response.data;
+      } else if (Array.isArray(response)) {
+        records = response;
+      } else if (response?.success && Array.isArray(response.data)) {
+        records = response.data;
+      } else {
+        console.warn("Unexpected response format:", response);
+        records = [];
+      }
+
+      const safeRecords = Array.isArray(records) ? records : [];
+
+      const formattedRecords = safeRecords.map((record) => ({
+        ...record,
+        id: record.id || record._id || `temp_${Date.now()}_${Math.random()}`,
+        createdAt: record.createdAt || new Date().toISOString(),
         date:
           record.effectiveDate ||
           record.createdAt ||
           new Date().toLocaleDateString(),
+        hasQRTracking: !!record.qrTracking,
+        qrCode: record.qrTracking?.qrCode || null,
+        qrStatus: record.qrTracking?.status || null,
+        isPublic: record.qrTracking?.isPublic || false,
+        publicUrl: record.qrTracking?.publicUrl || null,
       }));
 
+      // This will now work correctly
       setManufacturingReports(formattedRecords);
-      // set({ isLoading: false });
       toast.dismiss();
-      showInfo(`Loaded ${formattedRecords.length} manufacturing reports.`);
+
+      if (formattedRecords.length > 0) {
+        showInfo(`Loaded ${formattedRecords.length} manufacturing reports.`);
+      } else {
+        showInfo("No manufacturing reports found.");
+      }
+
       return formattedRecords;
     } catch (error) {
+      console.error("Failed to fetch manufacturing history:", error);
       handleApiError(error, "Failed to fetch manufacturing history.");
-      // set({ isLoading: false });
-      useReportStore.getState().setManufacturingReports([]);
+      // This will also work correctly now
+      setManufacturingReports([]);
       throw error;
+    }
+  },
+
+  // NEW: Manufacturing QR history
+  getManufacturingQRHistory: async () => {
+    const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+    if (userType !== "manufacturer") return;
+
+    try {
+      showInfo("Fetching manufacturing QR history...");
+      const response = await authenticatedFetch("/api/qr/manufacturer/history");
+
+      const qrHistory = response?.data || [];
+      toast.dismiss();
+      showInfo(`Loaded ${qrHistory.length} QR codes.`);
+      return qrHistory;
+    } catch (error) {
+      console.error("Manufacturing QR history fetch error:", error);
+      handleApiError(error, "Failed to fetch manufacturing QR history.");
+      return [];
     }
   },
 
@@ -312,11 +379,10 @@ const useAuthStore = create((set, get) => ({
     if (userType !== "laboratory" && userType !== "lab") return;
 
     const { setLabReports } = useReportStore.getState();
-    // set({ isLoading: true });
 
     try {
       showInfo("Fetching lab reports history...");
-      const response = await authenticatedFetch("/api/lab_reports");
+      const response = await authenticatedFetch("/api/lab_reports/history");
 
       const records = response?.data || response || [];
       const safeRecords = Array.isArray(records) ? records : [];
@@ -331,28 +397,65 @@ const useAuthStore = create((set, get) => ({
           new Date().toLocaleDateString(),
         status: record.status || "final",
         testType: record.testType || "Unknown",
-        manufacturingReportId: record.manufacturingReport?.batchId || "N/A",
+        harvestIdentifier: record.harvestIdentifier || "N/A",
       }));
 
       setLabReports(formattedRecords);
-      // set({ isLoading: false });
       toast.dismiss();
       showInfo(`Loaded ${formattedRecords.length} lab reports.`);
       return formattedRecords;
     } catch (error) {
       console.error("Lab history fetch error:", error);
       handleApiError(error, "Failed to fetch lab reports history.");
-      // set({ isLoading: false });
       useReportStore.getState().setLabReports([]);
       throw error;
+    }
+  },
+
+  // NEW: Lab QR history
+  getLabQRHistory: async () => {
+    const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+    if (userType !== "laboratory" && userType !== "lab") return;
+
+    try {
+      showInfo("Fetching lab QR history...");
+      const response = await authenticatedFetch("/api/qr/lab/history");
+
+      const qrHistory = response?.data || [];
+      toast.dismiss();
+      showInfo(`Loaded ${qrHistory.length} QR codes.`);
+      return qrHistory;
+    } catch (error) {
+      console.error("Lab QR history fetch error:", error);
+      handleApiError(error, "Failed to fetch lab QR history.");
+      return [];
+    }
+  },
+
+  // NEW: Available harvests for manufacturers/labs
+  getAvailableHarvests: async () => {
+    const { authenticatedFetch, showInfo, handleApiError } = get();
+    const { setAvailableHarvests } = useReportStore.getState();
+
+    try {
+      showInfo("Loading available harvests...");
+      const response = await authenticatedFetch("/api/harvests/identifiers");
+
+      const harvests = response?.data || [];
+      setAvailableHarvests(harvests);
+      toast.dismiss();
+      return harvests;
+    } catch (error) {
+      console.error("Available harvests fetch error:", error);
+      handleApiError(error, "Failed to fetch available harvests.");
+      setAvailableHarvests([]);
+      return [];
     }
   },
 
   getAdminHarvestReports: async () => {
     const { authenticatedFetch, showInfo, handleApiError, userType } = get();
     if (userType !== "admin") return [];
-
-    // set({ isLoading: true });
 
     try {
       showInfo("Fetching all harvest reports...");
@@ -368,13 +471,11 @@ const useAuthStore = create((set, get) => ({
         status: record.status || "completed",
       }));
 
-      // set({ isLoading: false });
       toast.dismiss();
       showInfo(`Loaded ${formattedRecords.length} harvest reports.`);
       return formattedRecords;
     } catch (error) {
       handleApiError(error, "Failed to fetch harvest reports.");
-      // set({ isLoading: false });
       throw error;
     }
   },
@@ -382,8 +483,6 @@ const useAuthStore = create((set, get) => ({
   getAdminManufacturingReports: async () => {
     const { authenticatedFetch, showInfo, handleApiError, userType } = get();
     if (userType !== "admin") return [];
-
-    // set({ isLoading: true });
 
     try {
       showInfo("Fetching all manufacturing reports...");
@@ -404,13 +503,11 @@ const useAuthStore = create((set, get) => ({
           new Date().toLocaleDateString(),
       }));
 
-      // set({ isLoading: false });
       toast.dismiss();
       showInfo(`Loaded ${formattedRecords.length} manufacturing reports.`);
       return formattedRecords;
     } catch (error) {
       handleApiError(error, "Failed to fetch manufacturing reports.");
-      // set({ isLoading: false });
       throw error;
     }
   },
@@ -418,8 +515,6 @@ const useAuthStore = create((set, get) => ({
   getAdminLabReports: async () => {
     const { authenticatedFetch, showInfo, handleApiError, userType } = get();
     if (userType !== "admin") return [];
-
-    // set({ isLoading: true });
 
     try {
       showInfo("Fetching all lab reports...");
@@ -438,84 +533,38 @@ const useAuthStore = create((set, get) => ({
           new Date().toLocaleDateString(),
         status: record.status || "final",
         testType: record.testType || "Unknown",
-        manufacturingReportId: record.manufacturingReportId || "N/A",
+        harvestIdentifier: record.harvestIdentifier || "N/A",
       }));
 
-      // set({ isLoading: false });
       toast.dismiss();
       showInfo(`Loaded ${formattedRecords.length} lab reports.`);
       return formattedRecords;
     } catch (error) {
       console.error("Lab reports fetch error:", error);
       handleApiError(error, "Failed to fetch lab reports.");
-      // set({ isLoading: false });
       throw error;
     }
   },
 
-  // authenticatedFetch: async (url, options = {}) => {
-  //   const { token } = get();
-  //   if (!token) {
-  //     get().logout();
-  //     return Promise.reject(
-  //       new Error("Authentication token not found. Please log in.")
-  //     );
-  //   }
-  //   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
-  //   const defaultHeaders = { Authorization: `Bearer ${token}` };
-  //   if (!(options.body instanceof FormData)) {
-  //     defaultHeaders["Content-Type"] = "application/json";
-  //   }
-  //   const config = {
-  //     ...options,
-  //     headers: { ...defaultHeaders, ...options.headers },
-  //   };
-  //   try {
-  //     const response = await fetch(fullUrl, config);
-  //     if (response.status === 401) {
-  //       get().logout();
-  //       get().handleApiError(new Error("Session expired."), "Session expired.");
-  //       return Promise.reject(new Error("Session expired."));
-  //     }
-  //     const contentType = response.headers.get("content-type");
-  //     if (!contentType || !contentType.includes("application/json")) {
-  //       const responseText = await response.text();
-  //       console.error(
-  //         "Non-JSON response received:",
-  //         responseText.substring(0, 200)
-  //       );
-  //       if (
-  //         responseText.includes("<!doctype") ||
-  //         responseText.includes("<html")
-  //       ) {
-  //         throw new Error(
-  //           "Server returned HTML instead of JSON. Check if the API endpoint exists and server is configured correctly."
-  //         );
-  //       }
-  //       throw new Error(
-  //         "Server returned unexpected content type: " + contentType
-  //       );
-  //     }
-  //     if (!response.ok) {
-  //       const errorData = await response.json().catch(() => ({
-  //         message: `API request failed with status ${response.status}`,
-  //       }));
-  //       return Promise.reject(errorData);
-  //     }
-  //     return response.json();
-  //   } catch (error) {
-  //     console.error("Network or unexpected API error:", error);
-  //     if (error.message.includes("fetch")) {
-  //       get().handleApiError(
-  //         error,
-  //         "Network error. Please check if the server is running."
-  //       );
-  //     } else {
-  //       get().handleApiError(error, "API request failed. Please try again.");
-  //     }
-  //     return Promise.reject(error);
-  //   }
-  // },
+  // NEW: Admin QR tracker management
+  getAdminQRTrackers: async () => {
+    const { authenticatedFetch, showInfo, handleApiError, userType } = get();
+    if (userType !== "admin") return [];
+
+    try {
+      showInfo("Fetching all QR trackers...");
+      const response = await authenticatedFetch("/api/qr/admin/all");
+
+      const qrTrackers = response?.data || [];
+      toast.dismiss();
+      showInfo(`Loaded ${qrTrackers.length} QR trackers.`);
+      return qrTrackers;
+    } catch (error) {
+      console.error("Admin QR trackers fetch error:", error);
+      handleApiError(error, "Failed to fetch QR trackers.");
+      return [];
+    }
+  },
 
   handleApiError: (error, defaultMessage = "An error occurred") => {
     const message =
