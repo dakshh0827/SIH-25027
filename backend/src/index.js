@@ -13,6 +13,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import { initializeBlockchainConnection } from "./blockchain.js";
 import herbRoutes from "./routes/herbRoutes.js";
 import qrRoutes from "./routes/qrRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js";
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use("/api/lab_reports", labRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/herbs", herbRoutes);
 app.use("/api/qr", qrRoutes);
+app.use("/api/public", publicRoutes);
 
 // ✅ Health check
 app.get("/", (req, res) => {
