@@ -11,7 +11,7 @@ const getBaseUrl = () => {
   return (
     process.env.NGROK_URL ||
     process.env.API_BASE_URL ||
-    "https://fe8d7288e956.ngrok-free.app"
+    "https://ayurtrace.onrender.com"
   );
 };
 
