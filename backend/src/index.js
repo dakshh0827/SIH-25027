@@ -41,13 +41,7 @@ const corsOptions = {
   ],
 };
 
-// ✅ Apply CORS globally
-app.use(
-  cors({
-    origin: "http://localhost:5173", // Or your frontend's actual URL
-    credentials: true, // This is the crucial part!
-  })
-);
+app.use(cors(corsOptions));
 
 // ✅ Body parsing middleware
 app.use(express.json());
