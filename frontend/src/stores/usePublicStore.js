@@ -111,11 +111,6 @@ const usePublicStore = create((set, get) => ({
 
       const response = await fetch(
         `${API_BASE_URL}/api/public/qr-codes?${params}`,
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        }
       );
 
       if (!response.ok) {
