@@ -235,6 +235,7 @@ class QRTrackingService {
 
       browser = await puppeteer.launch({
         headless: true,
+        executablePath: "/usr/bin/chromium-browser", // Use system Chromium
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
       });
 
