@@ -1,4 +1,5 @@
-import { PrismaClient, Role } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient, Role } = pkg;
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import cloudinary from "../config/cloudinaryConfig.js";

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 
-const API_BASE_URL = "https://cfacb9603025.ngrok-free.app";
+const API_BASE_URL = "https://fe8d7288e956.ngrok-free.app";
 
 const usePublicStore = create((set, get) => ({
   // State

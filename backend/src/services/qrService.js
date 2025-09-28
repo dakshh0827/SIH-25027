@@ -17,7 +17,7 @@ class QRTrackingService {
    * Priority: NGROK_URL > API_BASE_URL > localhost fallback
    */
   getBaseUrl() {
-    return "https://cfacb9603025.ngrok-free.app";
+    return "https://fe8d7288e956.ngrok-free.app";
   }
 
   /**
