@@ -89,7 +89,7 @@ const SignupForm = () => {
 
     try {
       const res = await fetch(
-        "https://ayurtrace-sepia.vercel.app/api/auth/register",
+        "https://ayurtrace.onrender.com/api/auth/register",
         {
           method: "POST",
           headers, // Headers will be empty for FormData, letting browser set it

@@ -34,17 +34,14 @@ const LoginScreen = () => {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        "https://ayurtrace-sepia.vercel.app/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-          credentials: "include",
-        }
-      );
+      const res = await fetch("https://ayurtrace.onrender.com/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
 
       if (!res.ok) {
         const error = await res.json();
