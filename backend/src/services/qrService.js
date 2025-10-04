@@ -233,12 +233,12 @@ class QRTrackingService {
 
       if (isProduction) {
         // --- PRODUCTION LOGIC ---
-        // This will run on Vercel/Render
-        const chromium = await import("@sparticuz/chromium");
+        // ✅ Note the .default at the end. This is the fix.
+        const chromium = (await import("@sparticuz/chromium")).default;
         browser = await puppeteer.launch({
           args: chromium.args,
           defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
+          executablePath: await chromium.executablePath(), // This will now work
           headless: chromium.headless,
           ignoreHTTPSErrors: true,
         });
