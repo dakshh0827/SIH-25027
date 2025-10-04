@@ -18,19 +18,21 @@
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "puppeteer": "^24.23.0"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.0",
     "@hyperledger/fabric-gateway": "^1.8.0",
     "@prisma/client": "^6.16.1",
+    "@sparticuz/chromium": "^140.0.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "multer": "^2.0.2",
     "prisma": "^6.16.1",
-    "puppeteer": "^24.22.0",
+    "puppeteer-core": "^24.23.0",
     "qrcode": "^1.5.4",
     "zod": "^4.1.8"
   }

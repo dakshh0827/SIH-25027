@@ -2,7 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import QRCode from "qrcode";
 import crypto from "crypto";
 import { generateReportHTML } from "./pdfTemplate.js";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 
 // Initialize Prisma client
 const prisma = new PrismaClient();
@@ -222,21 +223,33 @@ class QRTrackingService {
    * @returns {Promise<Buffer>} A promise that resolves with the PDF buffer.
    */
   async generateReportAsPDF(qrCode) {
-    let browser;
+    let browser = null;
     try {
       const trackingInfo = await this.getTrackingInfo(qrCode);
-
-      // CHANGE: Remove isPublic check - now accessible at all stages
-      // if (!trackingInfo.isPublic) {
-      //   throw new Error("This report is not available to the public yet.");
-      // }
-
       const htmlContent = generateReportHTML(trackingInfo);
 
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
+      // Check if we are in a production environment (like Vercel/Render)
+      const isProduction = process.env.NODE_ENV === "production";
+
+      if (isProduction) {
+        // --- PRODUCTION LOGIC ---
+        // This will run on Vercel/Render
+        const chromium = await import("@sparticuz/chromium");
+        browser = await puppeteer.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+        });
+      } else {
+        // --- LOCAL DEVELOPMENT LOGIC ---
+        // This will run on your local machine
+        const puppeteerLocal = await import("puppeteer");
+        browser = await puppeteerLocal.launch({
+          headless: "new",
+        });
+      }
 
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: "networkidle0" });
