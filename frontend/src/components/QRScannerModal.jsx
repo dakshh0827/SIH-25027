@@ -19,7 +19,7 @@ const QRScannerModal = ({ qrData, onClose }) => {
   const { shareReportURL } = usePublicStore();
 
   // Hardcoded ngrok URL for reliable linking
-  const API_BASE_URL = "https://cfacb9603025.ngrok-free.app";
+  const API_BASE_URL = "https://ayurtrace.onrender.com";
   const reportUrl = `${API_BASE_URL}/api/qr/report/${qrData.qrCode}`;
   const shareableUrl = reportUrl; // Use the same URL for sharing
 

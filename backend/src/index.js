@@ -26,6 +26,8 @@ const corsOptions = {
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
+    "https://ayurtrace-sepia.vercel.app",
+    "https://ayurtrace.onrender.com",
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -39,14 +41,6 @@ const corsOptions = {
     "ngrok-skip-browser-warning",
   ],
 };
-
-// ✅ Apply CORS globally
-// app.use(
-//   cors({
-//     origin: "http://localhost:5173", // Or your frontend's actual URL
-//     credentials: true, // This is the crucial part!
-//   })
-// );
 
 app.use(cors(corsOptions));
 

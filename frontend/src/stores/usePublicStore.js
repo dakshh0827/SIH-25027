@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 
-const API_BASE_URL = "https://1b0e7f9e5766.ngrok-free.app";
+const API_BASE_URL = "https://ayurtrace.onrender.com";
 
 const usePublicStore = create((set, get) => ({
   // State
@@ -110,12 +110,7 @@ const usePublicStore = create((set, get) => ({
       });
 
       const response = await fetch(
-        `${API_BASE_URL}/api/public/qr-codes?${params}`,
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        }
+        `${API_BASE_URL}/api/public/qr-codes?${params}`
       );
 
       if (!response.ok) {
