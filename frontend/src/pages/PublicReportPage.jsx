@@ -17,7 +17,7 @@ const PublicReportPage = () => {
 
         // Check if QR code exists and is public first
         const checkResponse = await fetch(
-          `http://localhost:5000/api/public/qr/${qrCode}/preview`
+          `https://ayurtrace-sepia.vercel.app/api/public/qr/${qrCode}/preview`
         );
 
         if (!checkResponse.ok) {
@@ -29,7 +29,7 @@ const PublicReportPage = () => {
         }
 
         // If QR code is valid, redirect to PDF
-        const pdfUrl = `http://localhost:5000/api/qr/report/${qrCode}`;
+        const pdfUrl = `hhttps://ayurtrace-sepia.vercel.app/api/qr/report/${qrCode}`;
         window.location.href = pdfUrl;
 
         // Show success message
@@ -66,7 +66,7 @@ const PublicReportPage = () => {
   };
 
   const handleDownloadDirect = () => {
-    const pdfUrl = `http://localhost:5000/api/qr/report/${qrCode}`;
+    const pdfUrl = `https://ayurtrace-sepia.vercel.app/api/qr/report/${qrCode}`;
     window.open(pdfUrl, "_blank");
   };
 

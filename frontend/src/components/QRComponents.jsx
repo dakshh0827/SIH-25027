@@ -235,7 +235,7 @@ const PublicQRTracker = ({ qrCode }) => {
       try {
         setLoading(true);
         const response = await fetch(
-          `http://localhost:5000/api/qr/public/${qrCode}`
+          `https://ayurtrace-sepia.vercel.app/api/qr/public/${qrCode}`
         );
 
         if (!response.ok) {
@@ -340,7 +340,7 @@ const PublicQRBrowser = () => {
     const fetchPublicProducts = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/qr/public?limit=6"
+          "https://ayurtrace-sepia.vercel.app/api/qr/public?limit=6"
         );
         const result = await response.json();
         setPublicProducts(result.data || []);
