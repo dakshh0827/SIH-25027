@@ -29,7 +29,7 @@ const PublicReportPage = () => {
         }
 
         // If QR code is valid, redirect to PDF
-        const pdfUrl = `hhttps://ayurtrace-sepia.vercel.app/api/qr/report/${qrCode}`;
+        const pdfUrl = `https://ayurtrace-sepia.vercel.app/api/qr/report/${qrCode}`;
         window.location.href = pdfUrl;
 
         // Show success message
