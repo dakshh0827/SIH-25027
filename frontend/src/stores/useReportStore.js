@@ -452,7 +452,7 @@ const useReportStore = create((set, get) => ({
     try {
       const response = await fetch(
         `${
-          process.env.REACT_APP_API_URL || "http://localhost:5000"
+          process.env.REACT_APP_API_URL || "https://ayurtrace.onrender.com"
         }/api/qr/public/${qrCode}`
       );
 
@@ -473,7 +473,7 @@ const useReportStore = create((set, get) => ({
     try {
       const response = await fetch(
         `${
-          process.env.REACT_APP_API_URL || "http://localhost:5000"
+          process.env.REACT_APP_API_URL || "https://ayurtrace.onrender.com"
         }/api/qr/public?limit=${limit}&offset=${offset}`
       );
 
