@@ -350,7 +350,7 @@ const useReportStore = create((set, get) => ({
       // FIXED: Refresh the manufacturing history after successful submission
       if (reportType === "manufacturer") {
         try {
-          await get().getManufacturingHistory();
+          await get().fetchManufacturingHistory();
         } catch (refreshError) {
           console.error(
             "Failed to refresh manufacturing history:",
@@ -451,9 +451,7 @@ const useReportStore = create((set, get) => ({
   getPublicQRData: async (qrCode) => {
     try {
       const response = await fetch(
-        `${
-          process.env.REACT_APP_API_URL || "https://ayurtrace.onrender.com"
-        }/api/qr/public/${qrCode}`
+        `https://ayurtrace.onrender.com/api/qr/public/${qrCode}`
       );
 
       if (!response.ok) {
@@ -472,9 +470,7 @@ const useReportStore = create((set, get) => ({
   getPublicQRList: async (limit = 20, offset = 0) => {
     try {
       const response = await fetch(
-        `${
-          process.env.REACT_APP_API_URL || "https://ayurtrace.onrender.com"
-        }/api/qr/public?limit=${limit}&offset=${offset}`
+        `https://ayurtrace.onrender.com/api/qr/public?limit=${limit}&offset=${offset}`
       );
 
       if (!response.ok) {
