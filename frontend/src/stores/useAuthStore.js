@@ -3,7 +3,7 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import { useReportStore } from "./useReportStore";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://ayurtrace-sepia.vercel.app";
 
 const useAuthStore = create((set, get) => ({
   user: null,
